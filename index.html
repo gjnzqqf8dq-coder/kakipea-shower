@@ -1,6 +1,7 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>柿ピーシャワー — 本物の柿の種で遊ぶ18秒</title>
+<link rel="icon" href="data:,">
 <meta name="description" content="柿の種を食べると柿が降る。ピーナッツを食べるとピーが降る。18秒で画面を埋めろ。ただし7:3。">
 <style>
   :root{--o:#FF9900;--b:#EBD6B0}
@@ -131,7 +132,7 @@ function step(src,vw,vh,ts){ if(!ready)return; let pinch=null,mouth=null,faceW=0
   if(kind){ E.hold=kind; E.holdN++; E.lostN=0; if(E.holdN>=2&&(near||!pinch)){ E.armed=kind; E.armedAt=performance.now(); } $('status').textContent=(kind==='K'?'柿の種':'ピーナッツ')+'を認識。口元へ → カリッ'; }
   else { E.lostN++; if(E.armed&&E.lostN>=3&&performance.now()-E.armedAt<2500){ eat(E.armed); } if(E.lostN>6){E.hold=null;E.holdN=0; if(E.lostN>40)E.armed=null;} if(S.run&&E.lostN>8)$('status').textContent='柿の種かピーナッツを持って、口元へ。'; }
 }
-function drawDebug(){ ctx.save(); ctx.lineWidth=3; const m=p=>({x:(1-p.x)*W,y:p.y*H}); if(DBG.mouth){const a=m(DBG.mouth); ctx.strokeStyle='#0f0'; ctx.beginPath(); ctx.arc(a.x,a.y,W*0.03,0,7); ctx.stroke();} if(DBG.pinch){const a=m(DBG.pinch); ctx.strokeStyle=DBG.kind==='K'?'#FF9900':DBG.kind==='P'?'#EBD6B0':'#f00'; ctx.beginPath(); ctx.arc(a.x,a.y,W*0.05,0,7); ctx.stroke(); ctx.fillStyle='#fff'; ctx.font=`${W*0.03}px sans-serif`; ctx.fillText((DBG.kind||'—')+(DBG.near?' near':''),a.x+W*0.06,a.y);} ctx.restore(); }
+function drawDebug(){ ctx.save(); ctx.lineWidth=3; const m=p=>({x:(DEMO?p.x:(1-p.x))*W,y:p.y*H}); if(DBG.mouth){const a=m(DBG.mouth); ctx.strokeStyle='#0f0'; ctx.beginPath(); ctx.arc(a.x,a.y,W*0.03,0,7); ctx.stroke();} if(DBG.pinch){const a=m(DBG.pinch); ctx.strokeStyle=DBG.kind==='K'?'#FF9900':DBG.kind==='P'?'#EBD6B0':'#f00'; ctx.beginPath(); ctx.arc(a.x,a.y,W*0.05,0,7); ctx.stroke(); ctx.fillStyle='#fff'; ctx.font=`${W*0.03}px sans-serif`; ctx.fillText((DBG.kind||'—')+(DBG.near?' near':''),a.x+W*0.06,a.y);} ctx.restore(); }
 // ---- マイク（補助）：カリッのピーク → 口元に持っていた粒を即確定 ----
 async function mic(stream){ try{ const ac=new (window.AudioContext||window.webkitAudioContext)(); const src=ac.createMediaStreamSource(stream); const an=ac.createAnalyser(); an.fftSize=1024; src.connect(an); const buf=new Float32Array(an.fftSize); let avg=0.01; (function tick(){ an.getFloatTimeDomainData(buf); let s=0; for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i]; const rms=Math.sqrt(s/buf.length); if(rms>avg*4.5&&rms>0.06&&E.armed&&performance.now()-E.armedAt<3000) eat(E.armed); avg=avg*0.95+rms*0.05; requestAnimationFrame(tick); })(); }catch(e){} }
 // ---- カメラ ----
@@ -141,6 +142,9 @@ $('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中
 // ---- デモ（静止画で認識確認・スクリーンショット用）----
 if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'; $('cam').style.display='none'; im.onload=async()=>{ await loadModels(); // 静止画に対して数フレーム分回す
     for(let i=0;i<6;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+i*70); await new Promise(r=>setTimeout(r,80)); }
+    if(q.get('eatTest')&&DBG.pinch){ // 食べた判定テスト：指先の粒を肌色で塗りつぶした画像を数フレーム流す→消えた＝食べた
+      const cc=document.createElement('canvas'); cc.width=im.naturalWidth; cc.height=im.naturalHeight; const g=cc.getContext('2d'); g.drawImage(im,0,0); const px=DBG.pinch.x*cc.width, py=DBG.pinch.y*cc.height; const rad=cc.width*0.06; const sample=g.getImageData(Math.round(px+rad*1.6),Math.round(py+rad*1.2),1,1).data; g.fillStyle=`rgb(${sample[0]},${sample[1]},${sample[2]})`; g.beginPath(); g.arc(px,py,rad,0,7); g.fill();
+      for(let i=0;i<6;i++){ step(cc,cc.width,cc.height,performance.now()+1000+i*70); await new Promise(r=>setTimeout(r,80)); } console.log('eatTest done kaki=',S.kaki,'pea=',S.pea); }
     if(q.get('auto')){ startGame(); S.t0=performance.now()-(parseFloat(q.get('at')||'8'))*1000; (q.get('seq')||'K,K,P,K,K,K,P,K,K,P').split(',').forEach(k=>burst(k.trim())); } }; }
 draw();
 </script></body></html>

@@ -106,9 +106,10 @@ $('share').onclick=async()=>{ const sc=$('shot'); sc.width=W; sc.height=H; const
 const DBG={on:!!q.get('debug'),pinch:null,mouth:null,kind:null,near:false};
 let hand=null, face=null, ready=false;
 async function loadModels(){ $('status').textContent='認識モデルを読み込み中…'; const fs=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
-  hand=await HandLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},runningMode:"VIDEO",numHands:1});
-  face=await FaceLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",delegate:"GPU"},runningMode:"VIDEO",numFaces:1});
-  ready=true; $('status').textContent='柿の種かピーナッツを持って、口元へ。'; }
+  const H_URL="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", F_URL="https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+  async function mk(cls,url,extra){ for(const d of ["GPU","CPU"]){ try{ return await cls.createFromOptions(fs,{baseOptions:{modelAssetPath:url,delegate:d},runningMode:"VIDEO",...extra}); }catch(e){ console.warn('delegate',d,'failed',e); } } throw new Error('model load failed'); }
+  hand=await mk(HandLandmarker,H_URL,{numHands:1}); face=await mk(FaceLandmarker,F_URL,{numFaces:1});
+  ready=true; $('status').textContent='柿の種かピーナッツを持って、口元へ。'; console.log('models ready'); }
 // 色分類：指先の間の小領域を見る
 const oc=document.createElement('canvas'), octx=oc.getContext('2d',{willReadFrequently:true}); oc.width=48; oc.height=48;
 function rgb2hsv(r,g,b){ r/=255;g/=255;b/=255; const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn; let h=0; if(d){ if(mx===r)h=((g-b)/d)%6; else if(mx===g)h=(b-r)/d+2; else h=(r-g)/d+4; h*=60; if(h<0)h+=360;} return [h, mx?d/mx:0, mx]; }

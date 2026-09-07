@@ -1,15 +1,14 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>柿ピーシャワー — 本物の柿の種で遊ぶ18秒</title>
 <link rel="icon" href="data:,">
-<meta name="description" content="柿の種を食べると柿が降る。ピーナッツを食べるとピーが降る。18秒で画面を埋めろ。ただし7:3。">
+<title>柿ピーシャワー — 本物の柿の種で遊ぶ18秒</title>
 <style>
   :root{--o:#FF9900;--b:#EBD6B0}
   html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;color:#fff;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
   #stage{position:fixed;inset:0;background:#000}
   #cam,#still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
   #still{display:none;transform:none}
-  #c{position:absolute;inset:0;width:100%;height:100%}
+  #heap,#c{position:absolute;inset:0;width:100%;height:100%}
   .shade{position:absolute;left:0;top:0;width:100%;height:230px;background:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,0));pointer-events:none}
   .ratio{position:absolute;left:5%;right:5%;top:calc(env(safe-area-inset-top,0px) + 12px);height:70px}
   .lab{position:absolute;top:0;font-size:14px;font-weight:700;text-shadow:0 1px 6px #000}.lab.l{left:0}.lab.r{right:0}
@@ -19,17 +18,23 @@
   .tlab{position:absolute;left:70%;top:52px;transform:translateX(-50%);font-size:12px;font-weight:800;background:#fff;color:#111;padding:0 8px;border-radius:8px}
   #timer{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 98px);transform:translateX(-50%);width:92px;height:92px;border-radius:50%;background:rgba(0,0,0,.5);border:5px solid #fff;box-sizing:border-box;text-align:center;font-size:42px;font-weight:800;line-height:80px;letter-spacing:-1px}
   #timer svg{position:absolute;left:-5px;top:-5px;width:92px;height:92px;transform:rotate(-90deg)}
-  #det{position:absolute;left:50%;top:32%;transform:translateX(-50%);font-size:34px;font-weight:900;text-shadow:0 3px 10px #000;letter-spacing:2px;opacity:0;transition:opacity .15s;white-space:nowrap}
-  #status{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);text-align:center;font-size:12px;opacity:.85;text-shadow:0 1px 4px #000;padding:0 16px}
+  #det{position:absolute;left:50%;top:32%;transform:translateX(-50%);font-size:40px;font-weight:900;text-shadow:0 3px 12px #000;letter-spacing:2px;opacity:0;transition:opacity .15s;white-space:nowrap}
+  #status{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);text-align:center;font-size:12px;opacity:.9;text-shadow:0 1px 4px #000;padding:0 16px}
+  #zone{position:absolute;left:50%;top:60%;transform:translate(-50%,-50%);width:150px;height:150px;border:3px dashed rgba(255,255,255,.85);border-radius:24px;display:none;box-sizing:border-box}
+  #zone.on{display:block}
   .ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.55);text-align:center;padding:24px;box-sizing:border-box}
   .ov.on{display:flex}
   #start h1{font-size:54px;margin:0 0 6px;letter-spacing:1px;line-height:1.1}
   #start .sub{font-size:15px;opacity:.95;margin:8px 0 22px;line-height:1.7}
-  #start .rule{display:flex;gap:10px;align-items:center;justify-content:center;font-size:14px;margin:6px 0}
+  .rule{display:flex;gap:10px;align-items:center;justify-content:center;font-size:14px;margin:6px 0}
   .dot{display:inline-block;width:14px;height:14px;border-radius:50%;background:var(--o)} .dot.p{background:var(--b)}
   .btn{margin-top:26px;font-size:20px;font-weight:800;padding:16px 44px;border:0;border-radius:44px;background:var(--o);color:#111;box-shadow:0 6px 24px rgba(255,153,0,.4)}
   .btn.w{background:#fff;font-size:16px;padding:12px 30px;margin-top:14px}
   .btn.g{background:transparent;color:#fff;border:2px solid #fff;font-size:14px;padding:10px 24px;margin-top:10px}
+  #cal{background:transparent;justify-content:flex-end;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 60px)}
+  #cal .box{background:rgba(0,0,0,.6);border-radius:20px;padding:18px 22px;max-width:340px}
+  #cal h2{margin:0 0 6px;font-size:22px}#cal p{margin:4px 0;font-size:14px;opacity:.95;line-height:1.6}
+  #calbar{height:8px;border-radius:4px;background:rgba(255,255,255,.25);margin-top:12px;overflow:hidden}#calfill{height:100%;width:0;background:var(--o);transition:width .2s}
   #res .row{display:flex;gap:12px;margin-bottom:16px}
   #res .box{width:94px;background:rgba(255,255,255,.14);border-radius:14px;padding:10px 0}
   .k{font-size:11px;font-weight:700;opacity:.85;letter-spacing:1px}.box .v{font-size:24px;font-weight:800;margin-top:2px}
@@ -41,9 +46,10 @@
 <div id="stage">
   <video id="cam" autoplay playsinline muted></video><img id="still" alt="">
   <div class="shade"></div>
-  <canvas id="c"></canvas>
+  <canvas id="heap"></canvas><canvas id="c"></canvas>
   <div class="ratio"><div class="lab l">柿の種</div><div class="lab r">ピーナッツ</div><div class="track"><div id="fill"></div></div><div class="target"></div><div class="tlab">7:3</div></div>
   <div id="timer"><svg viewBox="0 0 92 92"><circle id="arc" cx="46" cy="46" r="43" fill="none" stroke="#FF9900" stroke-width="5" stroke-dasharray="270" stroke-dashoffset="0"/></svg><span id="tn">18</span></div>
+  <div id="zone"></div>
   <div id="det"></div>
   <div id="status">準備中…</div>
   <div id="start" class="ov on">
@@ -53,8 +59,9 @@
     <div class="rule"><span class="dot p"></span>ピーナッツを食べると、ピーナッツが降る</div>
     <div class="rule">18秒で画面を埋めろ。ただし <b>7:3</b>。</div>
     <button class="btn" id="go">カメラをONにして START</button>
-    <div class="tiny">手元に亀田の柿の種を用意してください。<br>口元まで持ってきて、カリッ。<br>カメラ映像は端末内だけで処理され、送信されません。</div>
+    <div class="tiny">手元に亀田の柿の種を用意してください。<br>最初に柿の種とピーナッツを1回ずつカメラに見せます（色を覚えます）。<br>映像は端末内だけで処理され、送信されません。</div>
   </div>
+  <div id="cal" class="ov"><div class="box"><h2 id="calh">① 柿の種を見せてください</h2><p id="calp">指でつまんで、点線の枠の中に。</p><div id="calbar"><div id="calfill"></div></div><button class="btn g" id="calskip">スキップ（標準の色で判定）</button></div></div>
   <div id="res" class="ov">
     <div class="row"><div class="box"><div class="k">FILL</div><div class="v" id="r1">—</div></div><div class="box"><div class="k">RATIO</div><div class="v" id="r2">—</div></div><div class="box"><div class="k">MATCH</div><div class="v" id="r3">—</div></div></div>
     <div class="k">SCORE</div><div class="score" id="r4">—</div><div class="eq" id="r5"></div>
@@ -65,91 +72,93 @@
 </div>
 <script type="module">
 import { FilesetResolver, HandLandmarker, FaceLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
-// ===================== 柿ピーシャワー prototype v2 =====================
-// カメラ＝何を持っているか（手の指先の間の色：柿=オレンジ／ピー=ベージュ）＋口の位置
-// 食べた判定＝口元に持ってきた粒が消える（＋マイクの「カリッ」があれば即確定）
+// ===================== 柿ピーシャワー prototype v3 =====================
+// 見た目：生成画像から切り出した粒スプライトを大量に降らせ、積み上げる（スライドと同じ絵）
+// 認識：手（指先の間）＋顔（口・頬の肌色）。START時に柿/ピーを1回ずつ見せて色を覚える（キャリブレーション）
 const q=new URLSearchParams(location.search); const DEMO=q.get('demo');
 const $=id=>document.getElementById(id);
-const cv=$('c'), ctx=cv.getContext('2d'); let W=0,H=0;
-function fit(){W=cv.width=innerWidth*devicePixelRatio;H=cv.height=innerHeight*devicePixelRatio;} fit(); addEventListener('resize',fit);
-const S={run:false,t0:0,left:18,pieces:[],kaki:0,pea:0,fillLine:0,done:false};
-const DUR=18000, GRAV=0.0022;
+const cv=$('c'), ctx=cv.getContext('2d'), hc=$('heap'), hctx=hc.getContext('2d'); let W=0,H=0;
+function fit(){ const dpr=Math.min(2,devicePixelRatio||1); W=cv.width=hc.width=innerWidth*dpr; H=cv.height=hc.height=innerHeight*dpr; } fit(); addEventListener('resize',fit);
+// ---- sprites ----
+const SPR={K:[],P:[]}; const load=(k,n)=>{ for(let i=0;i<n;i++){ const im=new Image(); im.src=`sprites/${k.toLowerCase()}${i}.png`; SPR[k].push(im);} }; load('K',6); load('P',6);
+const S={run:false,t0:0,left:18,active:[],landed:0,kaki:0,pea:0,fillLine:0,done:false,lastScore:0};
+const DUR=18000, GRAV=0.0032, FULL=360; // FULL個で画面が埋まる
 const rnd=(a,b)=>a+Math.random()*(b-a);
-function spawn(kind,n){ for(let i=0;i<n;i++) S.pieces.push({k:kind,x:rnd(0.06,0.94)*W,y:-rnd(0,H*0.6),vy:rnd(0.25,0.7),r:rnd(-Math.PI,Math.PI),vr:rnd(-0.012,0.012),land:false}); if(kind==='K')S.kaki+=n; else S.pea+=n; updBar(); }
-function burst(kind){ const el=Math.min(1,(performance.now()-S.t0)/DUR); const n=Math.round(kind==='K'?(7+el*24):(4+el*14)); spawn(kind,n); flash(kind==='K'?'柿！':'ピー！'); }
+function pieceSize(){ return W*0.135; } // 柿の種の長さ（画面幅比）
+function spawn(kind,n){ for(let i=0;i<n;i++){ S.active.push({k:kind,s:SPR[kind][Math.floor(Math.random()*SPR[kind].length)],x:rnd(0.04,0.96)*W,y:-rnd(0.05,0.9)*H,vy:rnd(0.6,1.4),vx:rnd(-0.15,0.15),r:rnd(-Math.PI,Math.PI),vr:rnd(-0.03,0.03),sc:rnd(0.85,1.15)}); } if(kind==='K')S.kaki+=n; else S.pea+=n; updBar(); }
+function burst(kind){ const el=Math.min(1,(performance.now()-S.t0)/DUR); const n=Math.round(kind==='K'?(22+el*40):(12+el*24)); spawn(kind,n); flash(kind==='K'?'柿の種！':'ピーナッツ！'); }
 function updBar(){ const t=S.kaki+S.pea; const r=t?S.kaki/t:0.7; $('fill').style.width=(r*100).toFixed(1)+'%'; }
-let flashT=null; function flash(s){ const d=$('det'); d.textContent=s; d.style.opacity=1; clearTimeout(flashT); flashT=setTimeout(()=>d.style.opacity=0,450); }
-function drawPiece(p,sz){ ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r);
-  if(p.k==='K'){ // 柿の種：細長い三日月
-    ctx.fillStyle='#F28C1B'; ctx.beginPath(); ctx.moveTo(-sz*0.62,0); ctx.quadraticCurveTo(0,-sz*0.55,sz*0.62,0); ctx.quadraticCurveTo(0,sz*0.15,-sz*0.62,0); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.35)'; ctx.beginPath(); ctx.ellipse(-sz*0.15,-sz*0.18,sz*0.18,sz*0.06,0,0,7); ctx.fill();
-    ctx.fillStyle='#B04A10'; for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(rnd(-sz*0.4,sz*0.4),rnd(-sz*0.2,sz*0.05),sz*0.035,0,7);ctx.fill();}
-  } else { // ピーナッツ：くびれ
-    ctx.fillStyle='#E8CFA0'; ctx.beginPath(); ctx.ellipse(-sz*0.16,0,sz*0.28,sz*0.26,0,0,7); ctx.fill(); ctx.beginPath(); ctx.ellipse(sz*0.16,0,sz*0.28,sz*0.26,0,0,7); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse(-sz*0.2,-sz*0.1,sz*0.1,sz*0.06,0,0,7); ctx.fill();
-  } ctx.restore(); }
-function draw(){ ctx.clearRect(0,0,W,H); const sz=Math.min(W,H)*0.052;
-  const landed=S.pieces.reduce((a,p)=>a+(p.land?1:0),0); S.fillLine=H-Math.min(H*0.94, landed*sz*sz*1.25/W);
-  for(const p of S.pieces){ if(!p.land){ p.vy+=GRAV*sz; p.y+=p.vy*sz*0.9; p.r+=p.vr; if(p.y>=S.fillLine-rnd(0,sz*0.7)){p.land=true; p.y=S.fillLine-rnd(0,sz*0.7);} } drawPiece(p,sz); }
+let flashT=null; function flash(s){ const d=$('det'); d.textContent=s; d.style.opacity=1; clearTimeout(flashT); flashT=setTimeout(()=>d.style.opacity=0,500); }
+function drawSprite(g,p){ const im=p.s; if(!im.complete||!im.naturalWidth) return; const L=pieceSize()*p.sc; const ar=im.naturalHeight/im.naturalWidth; let w,h; if(p.k==='K'){ const big=Math.max(im.naturalWidth,im.naturalHeight); w=L*im.naturalWidth/big; h=L*im.naturalHeight/big; } else { const big=Math.max(im.naturalWidth,im.naturalHeight); w=L*0.62*im.naturalWidth/big; h=L*0.62*im.naturalHeight/big; }
+  g.save(); g.translate(p.x,p.y); g.rotate(p.r); g.shadowColor='rgba(0,0,0,.35)'; g.shadowBlur=L*0.08; g.shadowOffsetY=L*0.04; g.drawImage(im,-w/2,-h/2,w,h); g.restore(); }
+function draw(){ ctx.clearRect(0,0,W,H); const L=pieceSize(); S.fillLine=H-Math.min(H*0.97, (S.landed/FULL)*H*0.97);
+  const keep=[]; for(const p of S.active){ p.vy+=GRAV*L*0.02; p.y+=p.vy*L*0.06; p.x+=p.vx*L*0.06; p.r+=p.vr; const line=S.fillLine-rnd(0,L*0.5); if(p.y>=line){ p.y=Math.min(H+L*0.2,line+rnd(-L*0.1,L*0.35)); drawSprite(hctx,p); S.landed++; } else { drawSprite(ctx,p); keep.push(p);} } S.active=keep;
   if(DBG.on) drawDebug();
-  if(S.run){ const el=performance.now()-S.t0; S.left=Math.max(0,(DUR-el)/1000); $('tn').textContent=S.left<10?S.left.toFixed(1):Math.ceil(S.left); $('arc').setAttribute('stroke-dashoffset',String(270*(1-S.left/18))); if(el>=DUR) finish(); }
+  if(S.run){ const el=performance.now()-S.t0; S.left=Math.max(0,(DUR-el)/1000); $('tn').textContent=S.left<10?S.left.toFixed(1):Math.ceil(S.left); $('arc').setAttribute('stroke-dashoffset',String(270*(1-S.left/18))); if(el>=DUR&&S.active.length===0) finish(); else if(el>=DUR+1500) finish(); }
   requestAnimationFrame(draw); }
-function finish(){ if(S.done)return; S.done=true; S.run=false; const fill=Math.min(1,(H-S.fillLine)/(H*0.94)); const t=S.kaki+S.pea; const r=t?S.kaki/t:0; const match=t?Math.max(0,1-Math.abs(r-0.7)/0.7):0; const score=Math.round(fill*match*100);
-  $('r1').textContent=Math.round(fill*100)+'%'; $('r2').textContent=(r*10).toFixed(1)+':'+((1-r)*10).toFixed(1); $('r3').textContent=Math.round(match*100)+'%'; $('r4').textContent=score; $('r5').textContent=`FILL ${Math.round(fill*100)}% × MATCH ${Math.round(match*100)}% = ${score}`;
-  S.lastScore=score; $('res').classList.add('on'); }
-function startGame(){ S.pieces=[];S.kaki=0;S.pea=0;S.run=true;S.done=false;S.t0=performance.now(); updBar(); $('start').classList.remove('on'); $('res').classList.remove('on'); }
+function finish(){ if(S.done)return; S.done=true; S.run=false; const fill=Math.min(1,S.landed/FULL); const t=S.kaki+S.pea; const r=t?S.kaki/t:0; const match=t?Math.max(0,1-Math.abs(r-0.7)/0.7):0; const score=Math.round(fill*match*100);
+  $('r1').textContent=Math.round(fill*100)+'%'; $('r2').textContent=(r*10).toFixed(1)+':'+((1-r)*10).toFixed(1); $('r3').textContent=Math.round(match*100)+'%'; $('r4').textContent=score; $('r5').textContent=`FILL ${Math.round(fill*100)}% × MATCH ${Math.round(match*100)}% = ${score}`; S.lastScore=score; $('res').classList.add('on'); }
+function startGame(){ S.active=[];S.landed=0;S.kaki=0;S.pea=0;S.run=true;S.done=false;S.t0=performance.now(); hctx.clearRect(0,0,W,H); updBar(); $('start').classList.remove('on'); $('cal').classList.remove('on'); $('res').classList.remove('on'); $('zone').classList.remove('on'); }
 $('again').onclick=()=>{ $('res').classList.remove('on'); startGame(); };
 addEventListener('keydown',e=>{ if(!S.run)return; if(e.key==='k'||e.key==='K')burst('K'); if(e.key==='p'||e.key==='P')burst('P'); });
-// ---- share: 顔＋積もった柿ピー＋スコアを1枚に ----
-$('share').onclick=async()=>{ const sc=$('shot'); sc.width=W; sc.height=H; const g=sc.getContext('2d'); const src=DEMO?$('still'):$('cam'); g.save(); if(!DEMO){g.translate(W,0);g.scale(-1,1);} try{ const vw=src.videoWidth||src.naturalWidth, vh=src.videoHeight||src.naturalHeight; const s=Math.max(W/vw,H/vh); g.drawImage(src,(W-vw*s)/2,(H-vh*s)/2,vw*s,vh*s);}catch(e){} g.restore(); g.drawImage(cv,0,0); g.fillStyle='rgba(0,0,0,.35)'; g.fillRect(0,0,W,H); g.fillStyle='#FF9900'; g.textAlign='center'; g.font=`900 ${W*0.36}px Hiragino Sans, sans-serif`; g.fillText(String(S.lastScore),W/2,H*0.5); g.fillStyle='#fff'; g.font=`700 ${W*0.05}px Hiragino Sans, sans-serif`; g.fillText('#柿ピーシャワー  '+$('r2').textContent,W/2,H*0.58);
+$('share').onclick=async()=>{ const sc=$('shot'); sc.width=W; sc.height=H; const g=sc.getContext('2d'); const src=DEMO?$('still'):$('cam'); g.save(); if(!DEMO){g.translate(W,0);g.scale(-1,1);} try{ const vw=src.videoWidth||src.naturalWidth, vh=src.videoHeight||src.naturalHeight; const s=Math.max(W/vw,H/vh); g.drawImage(src,(W-vw*s)/2,(H-vh*s)/2,vw*s,vh*s);}catch(e){} g.restore(); g.drawImage(hc,0,0); g.drawImage(cv,0,0); g.fillStyle='rgba(0,0,0,.3)'; g.fillRect(0,0,W,H); g.fillStyle='#FF9900'; g.textAlign='center'; g.font=`900 ${W*0.36}px Hiragino Sans, sans-serif`; g.fillText(String(S.lastScore),W/2,H*0.5); g.fillStyle='#fff'; g.font=`700 ${W*0.05}px Hiragino Sans, sans-serif`; g.fillText('#柿ピーシャワー  '+$('r2').textContent,W/2,H*0.58);
   sc.toBlob(async b=>{ const f=new File([b],'kakipea.png',{type:'image/png'}); if(navigator.canShare&&navigator.canShare({files:[f]})){ try{await navigator.share({files:[f],text:'#柿ピーシャワー'});}catch(e){} } else { const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='kakipea.png'; a.click(); } }); };
 // ===================== 認識 =====================
-const DBG={on:!!q.get('debug'),pinch:null,mouth:null,kind:null,near:false};
+const DBG={on:!!q.get('debug'),pinch:null,mouth:null,kind:null,near:false,skin:null};
 let hand=null, face=null, ready=false;
 async function loadModels(){ $('status').textContent='認識モデルを読み込み中…'; const fs=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
   const H_URL="https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", F_URL="https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
   async function mk(cls,url,extra){ for(const d of ["GPU","CPU"]){ try{ return await cls.createFromOptions(fs,{baseOptions:{modelAssetPath:url,delegate:d},runningMode:"VIDEO",...extra}); }catch(e){ console.warn('delegate',d,'failed',e); } } throw new Error('model load failed'); }
-  hand=await mk(HandLandmarker,H_URL,{numHands:1}); face=await mk(FaceLandmarker,F_URL,{numFaces:1});
-  ready=true; $('status').textContent='柿の種かピーナッツを持って、口元へ。'; console.log('models ready'); }
-// 色分類：指先の間の小領域を見る
-const oc=document.createElement('canvas'), octx=oc.getContext('2d',{willReadFrequently:true}); oc.width=48; oc.height=48;
+  hand=await mk(HandLandmarker,H_URL,{numHands:1}); face=await mk(FaceLandmarker,F_URL,{numFaces:1}); ready=true; $('status').textContent=''; console.log('models ready'); }
+const oc=document.createElement('canvas'), octx=oc.getContext('2d',{willReadFrequently:true}); oc.width=56; oc.height=56;
 function rgb2hsv(r,g,b){ r/=255;g/=255;b/=255; const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn; let h=0; if(d){ if(mx===r)h=((g-b)/d)%6; else if(mx===g)h=(b-r)/d+2; else h=(r-g)/d+4; h*=60; if(h<0)h+=360;} return [h, mx?d/mx:0, mx]; }
-function classify(src,cx,cy,rad,vw,vh){ // cx,cy: 0..1 (source coords)
-  const x=Math.max(0,cx*vw-rad), y=Math.max(0,cy*vh-rad); octx.drawImage(src,x,y,rad*2,rad*2,0,0,48,48); const d=octx.getImageData(0,0,48,48).data; let k=0,p=0,n=0;
-  for(let i=0;i<d.length;i+=4){ const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); n++; if(v>0.35&&s>0.5&&h>=12&&h<=42)k++; else if(v>0.6&&s>=0.18&&s<=0.5&&h>=30&&h<=55&&(d[i+1]-d[i+2])>(d[i]-d[i+1])*1.15&&d[i]-d[i+2]>40)p++; }
-  const kr=k/n, pr=p/n; if(kr>0.10&&kr>pr*1.2)return ['K',kr]; if(pr>0.16&&pr>kr)return ['P',pr]; return [null,0]; }
-// 状態：持っている→口元→消えた＝食べた
+// 肌色：頬の2点からサンプリング（毎フレーム更新）
+function sampleSkin(src,L,vw,vh){ const pts=[L[50],L[280],L[101],L[330]]; let r=0,g=0,b=0,n=0; for(const p of pts){ const x=Math.max(0,Math.min(vw-4,p.x*vw-2)), y=Math.max(0,Math.min(vh-4,p.y*vh-2)); octx.drawImage(src,x,y,4,4,0,0,4,4); const d=octx.getImageData(0,0,4,4).data; for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];n++;} } return n?[r/n,g/n,b/n]:null; }
+// キャリブレーション値（HSV重心）。無ければ標準色
+const CAL={K:null,P:null,defaults:{K:[26,0.78,0.85],P:[40,0.30,0.88]}};
+const hdist=(a,b)=>{ let dh=Math.abs(a[0]-b[0]); dh=Math.min(dh,360-dh); return Math.hypot(dh/2, (a[1]-b[1])*100, (a[2]-b[2])*70); };
+function roiStats(src,cx,cy,rad,vw,vh,skin){ // ROI内の「肌でない」画素の平均HSVと比率
+  const x=Math.max(0,cx*vw-rad), y=Math.max(0,cy*vh-rad); octx.drawImage(src,x,y,rad*2,rad*2,0,0,56,56); const d=octx.getImageData(0,0,56,56).data; let n=0,m=0,hs=0,hc2=0,ss=0,vs=0; let kr=0,pr=0;
+  for(let i=0;i<d.length;i+=4){ const r=d[i],g=d[i+1],b=d[i+2]; n++; if(skin){ const ds=Math.hypot(r-skin[0],g-skin[1],b-skin[2]); if(ds<48) continue; } const [h,s,v]=rgb2hsv(r,g,b); if(v<0.25) continue; // 暗い＝影・背景
+    m++; hs+=Math.sin(h*Math.PI/180); hc2+=Math.cos(h*Math.PI/180); ss+=s; vs+=v; if(s>0.5&&h>=10&&h<=44)kr++; if(v>0.55&&s>=0.14&&s<=0.55&&h>=28&&h<=60&&(g-b)>(r-g))pr++; }
+  if(!m) return null; let h=Math.atan2(hs/m,hc2/m)*180/Math.PI; if(h<0)h+=360; return {hsv:[h,ss/m,vs/m],ratio:m/n,kr:kr/n,pr:pr/n}; }
+function classify(st){ if(!st||st.ratio<0.07) return [null,0];
+  const K=CAL.K||CAL.defaults.K, P=CAL.P||CAL.defaults.P; const dK=hdist(st.hsv,K), dP=hdist(st.hsv,P);
+  if(CAL.K&&CAL.P){ if(dK<dP*0.8&&dK<32) return ['K',1-dK/60]; if(dP<dK*0.8&&dP<32) return ['P',1-dP/60]; return [null,0]; }
+  if(st.kr>0.10&&st.kr>st.pr*1.2) return ['K',st.kr]; if(st.pr>0.10&&st.pr>st.kr) return ['P',st.pr]; if(dK<20) return ['K',0.5]; if(dP<16) return ['P',0.5]; return [null,0]; }
 const E={hold:null,holdN:0,armed:null,armedAt:0,lostN:0,lastEat:0};
-function eat(kind){ const now=performance.now(); if(now-E.lastEat<650)return; E.lastEat=now; E.armed=null; E.hold=null; E.holdN=0; if(S.run) burst(kind); else flash(kind==='K'?'柿！':'ピー！'); }
-function step(src,vw,vh,ts){ if(!ready)return; let pinch=null,mouth=null,faceW=0.3,open=0;
-  try{ const fr=face.detectForVideo(src,ts); if(fr.faceLandmarks&&fr.faceLandmarks[0]){ const L=fr.faceLandmarks[0]; mouth={x:(L[13].x+L[14].x)/2,y:(L[13].y+L[14].y)/2}; faceW=Math.hypot(L[454].x-L[234].x,L[454].y-L[234].y); open=Math.hypot(L[13].x-L[14].x,L[13].y-L[14].y)/faceW; } }catch(e){}
-  try{ const hr=hand.detectForVideo(src,ts); if(hr.landmarks&&hr.landmarks[0]){ const L=hr.landmarks[0]; pinch={x:(L[4].x+L[8].x)/2,y:(L[4].y+L[8].y)/2}; } }catch(e){}
-  let kind=null,conf=0;
-  if(pinch){ [kind,conf]=classify(src,pinch.x,pinch.y,Math.max(10,vw*0.035),vw,vh); }
-  else if(mouth){ [kind,conf]=classify(src,mouth.x,mouth.y+faceW*0.15,Math.max(10,vw*0.05),vw,vh); } // 手が映らない時は口元直下で判定
-  const near=!!(pinch&&mouth&&Math.hypot(pinch.x-mouth.x,pinch.y-mouth.y)<faceW*0.55);
-  DBG.pinch=pinch;DBG.mouth=mouth;DBG.kind=kind;DBG.near=near;
+function eat(kind){ const now=performance.now(); if(now-E.lastEat<650)return; E.lastEat=now; E.armed=null; E.hold=null; E.holdN=0; if(S.run) burst(kind); else flash(kind==='K'?'柿の種！':'ピーナッツ！'); }
+let calMode=null, calBuf=[]; // 'K' | 'P'
+function step(src,vw,vh,ts){ if(!ready)return; let pinch=null,mouth=null,faceW=0.3,skin=null,tipD=0;
+  try{ const fr=face.detectForVideo(src,ts); if(fr.faceLandmarks&&fr.faceLandmarks[0]){ const L=fr.faceLandmarks[0]; mouth={x:(L[13].x+L[14].x)/2,y:(L[13].y+L[14].y)/2}; faceW=Math.hypot(L[454].x-L[234].x,L[454].y-L[234].y); skin=sampleSkin(src,L,vw,vh); } }catch(e){}
+  try{ const hr=hand.detectForVideo(src,ts); if(hr.landmarks&&hr.landmarks[0]){ const L=hr.landmarks[0]; pinch={x:(L[4].x+L[8].x)/2,y:(L[4].y+L[8].y)/2}; tipD=Math.hypot(L[4].x-L[8].x,L[4].y-L[8].y); } }catch(e){}
+  let st=null; if(pinch){ st=roiStats(src,pinch.x,pinch.y,Math.max(vw*0.03,tipD*vw*0.9),vw,vh,skin); } else if(mouth){ st=roiStats(src,mouth.x,mouth.y+faceW*0.15,vw*0.05,vw,vh,skin); }
+  if(calMode){ // キャリブレーション：枠内に十分な非肌画素があればサンプル蓄積
+    if(st&&st.ratio>0.10){ calBuf.push(st.hsv); $('calfill').style.width=Math.min(100,calBuf.length/18*100)+'%'; if(calBuf.length>=18){ const hs=calBuf.reduce((a,v)=>a+Math.sin(v[0]*Math.PI/180),0), hc2=calBuf.reduce((a,v)=>a+Math.cos(v[0]*Math.PI/180),0); let h=Math.atan2(hs,hc2)*180/Math.PI; if(h<0)h+=360; CAL[calMode]=[h,calBuf.reduce((a,v)=>a+v[1],0)/calBuf.length,calBuf.reduce((a,v)=>a+v[2],0)/calBuf.length]; console.log('cal',calMode,CAL[calMode]); nextCal(); } } return; }
+  const [kind,conf]=classify(st); const near=!!(pinch&&mouth&&Math.hypot(pinch.x-mouth.x,pinch.y-mouth.y)<faceW*0.6);
+  DBG.pinch=pinch;DBG.mouth=mouth;DBG.kind=kind;DBG.near=near;DBG.skin=skin;
   if(kind){ E.hold=kind; E.holdN++; E.lostN=0; if(E.holdN>=2&&(near||!pinch)){ E.armed=kind; E.armedAt=performance.now(); } $('status').textContent=(kind==='K'?'柿の種':'ピーナッツ')+'を認識。口元へ → カリッ'; }
   else { E.lostN++; if(E.armed&&E.lostN>=3&&performance.now()-E.armedAt<2500){ eat(E.armed); } if(E.lostN>6){E.hold=null;E.holdN=0; if(E.lostN>40)E.armed=null;} if(S.run&&E.lostN>8)$('status').textContent='柿の種かピーナッツを持って、口元へ。'; }
 }
-function drawDebug(){ ctx.save(); ctx.lineWidth=3; const m=p=>({x:(DEMO?p.x:(1-p.x))*W,y:p.y*H}); if(DBG.mouth){const a=m(DBG.mouth); ctx.strokeStyle='#0f0'; ctx.beginPath(); ctx.arc(a.x,a.y,W*0.03,0,7); ctx.stroke();} if(DBG.pinch){const a=m(DBG.pinch); ctx.strokeStyle=DBG.kind==='K'?'#FF9900':DBG.kind==='P'?'#EBD6B0':'#f00'; ctx.beginPath(); ctx.arc(a.x,a.y,W*0.05,0,7); ctx.stroke(); ctx.fillStyle='#fff'; ctx.font=`${W*0.03}px sans-serif`; ctx.fillText((DBG.kind||'—')+(DBG.near?' near':''),a.x+W*0.06,a.y);} ctx.restore(); }
-// ---- マイク（補助）：カリッのピーク → 口元に持っていた粒を即確定 ----
+function drawDebug(){ ctx.save(); ctx.lineWidth=3; const m=p=>({x:(DEMO?p.x:(1-p.x))*W,y:p.y*H}); if(DBG.mouth){const a=m(DBG.mouth); ctx.strokeStyle='#0f0'; ctx.beginPath(); ctx.arc(a.x,a.y,W*0.03,0,7); ctx.stroke();} if(DBG.pinch){const a=m(DBG.pinch); ctx.strokeStyle=DBG.kind==='K'?'#FF9900':DBG.kind==='P'?'#EBD6B0':'#f00'; ctx.beginPath(); ctx.arc(a.x,a.y,W*0.05,0,7); ctx.stroke(); ctx.fillStyle='#fff'; ctx.font=`${W*0.03}px sans-serif`; ctx.fillText((DBG.kind||'—')+(DBG.near?' near':''),a.x+W*0.06,a.y);} if(DBG.skin){ ctx.fillStyle=`rgb(${DBG.skin.map(Math.round).join(',')})`; ctx.fillRect(10,H-60,50,50);} ctx.restore(); }
+// ---- キャリブレーション フロー ----
+function startCal(){ calMode='K'; calBuf=[]; $('cal').classList.add('on'); $('zone').classList.add('on'); $('calh').textContent='① 柿の種を見せてください'; $('calp').textContent='指でつまんで、点線の枠の中に。'; $('calfill').style.width='0%'; }
+function nextCal(){ if(calMode==='K'){ calMode='P'; calBuf=[]; $('calh').textContent='② ピーナッツを見せてください'; $('calp').textContent='同じように、点線の枠の中に。'; $('calfill').style.width='0%'; flash('OK！'); } else { calMode=null; flash('START'); setTimeout(startGame,600); } }
+$('calskip').onclick=()=>{ calMode=null; startGame(); };
+// ---- マイク（補助） ----
 async function mic(stream){ try{ const ac=new (window.AudioContext||window.webkitAudioContext)(); const src=ac.createMediaStreamSource(stream); const an=ac.createAnalyser(); an.fftSize=1024; src.connect(an); const buf=new Float32Array(an.fftSize); let avg=0.01; (function tick(){ an.getFloatTimeDomainData(buf); let s=0; for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i]; const rms=Math.sqrt(s/buf.length); if(rms>avg*4.5&&rms>0.06&&E.armed&&performance.now()-E.armedAt<3000) eat(E.armed); avg=avg*0.95+rms*0.05; requestAnimationFrame(tick); })(); }catch(e){} }
-// ---- カメラ ----
 async function initCam(){ const v=$('cam'); const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720},height:{ideal:1280}},audio:true}); v.srcObject=st; await v.play(); mic(st); let last=-1;
   (function loop(){ if(v.readyState>=2&&v.currentTime!==last){ last=v.currentTime; step(v,v.videoWidth,v.videoHeight,performance.now()); } setTimeout(loop,66); })(); }
-$('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中…'; try{ if(!DEMO) await initCam(); await loadModels(); startGame(); }catch(e){ $('status').textContent='カメラが使えません：K / P キーで入力（デモ）'; await loadModels().catch(()=>{}); startGame(); } };
-// ---- デモ（静止画で認識確認・スクリーンショット用）----
-if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'; $('cam').style.display='none'; im.onload=async()=>{ await loadModels(); // 静止画に対して数フレーム分回す
+$('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中…'; try{ if(!DEMO) await initCam(); await loadModels(); $('start').classList.remove('on'); if(DEMO) startGame(); else startCal(); }catch(e){ console.warn(e); $('status').textContent='カメラが使えません：K / P キーで入力（デモ）'; await loadModels().catch(()=>{}); startGame(); } };
+// ---- デモ ----
+if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'; $('cam').style.display='none'; im.onload=async()=>{ await loadModels();
     for(let i=0;i<6;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+i*70); await new Promise(r=>setTimeout(r,80)); }
     if(q.get('auto')){ startGame(); S.t0=performance.now()-(parseFloat(q.get('at')||'8'))*1000; (q.get('seq')||'').split(',').filter(Boolean).forEach(k=>burst(k.trim())); }
     const mk=(fn)=>{ const cc=document.createElement('canvas'); cc.width=im.naturalWidth; cc.height=im.naturalHeight; const g=cc.getContext('2d'); g.drawImage(im,0,0); fn(g,cc); return cc; };
-    if(q.get('peaTest')&&DBG.pinch){ // ピーナッツ判定テスト：指先にピーナッツ色の粒を描いた画像
-      const cc=mk((g,cc)=>{ const px=DBG.pinch.x*cc.width, py=DBG.pinch.y*cc.height; g.fillStyle='rgb(236,206,152)'; g.beginPath(); g.ellipse(px,py,cc.width*0.035,cc.width*0.022,0.4,0,7); g.fill(); g.fillStyle='rgb(214,178,120)'; g.beginPath(); g.ellipse(px+cc.width*0.01,py+cc.width*0.006,cc.width*0.012,cc.width*0.008,0.4,0,7); g.fill(); });
+    if(q.get('peaTest')&&DBG.pinch){ const cc=mk((g,cc)=>{ const px=DBG.pinch.x*cc.width, py=DBG.pinch.y*cc.height; g.fillStyle='rgb(236,206,152)'; g.beginPath(); g.ellipse(px,py,cc.width*0.035,cc.width*0.022,0.4,0,7); g.fill(); g.fillStyle='rgb(214,178,120)'; g.beginPath(); g.ellipse(px+cc.width*0.01,py+cc.width*0.006,cc.width*0.012,cc.width*0.008,0.4,0,7); g.fill(); });
       E.hold=null;E.holdN=0;E.armed=null; for(let i=0;i<6;i++){ step(cc,cc.width,cc.height,performance.now()+500+i*70); await new Promise(r=>setTimeout(r,80)); } console.log('peaTest kind=',DBG.kind); }
-    if(q.get('eatTest')&&DBG.pinch){ // 食べた判定テスト：指先の粒を肌色で塗りつぶす→消えた＝食べた
-      for(let i=0;i<4;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+900+i*70); await new Promise(r=>setTimeout(r,80)); }
-      const k0=S.kaki; const cc=mk((g,cc)=>{ const px=DBG.pinch.x*cc.width, py=DBG.pinch.y*cc.height; const rad=cc.width*0.11; const smp=g.getImageData(Math.round(px+rad*1.3),Math.round(py+rad*1.1),1,1).data; g.fillStyle=`rgb(${smp[0]},${smp[1]},${smp[2]})`; g.beginPath(); g.arc(px,py,rad,0,7); g.fill(); });
+    if(q.get('eatTest')&&DBG.pinch){ for(let i=0;i<4;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+900+i*70); await new Promise(r=>setTimeout(r,80)); }
+      const k0=S.kaki; const cc=mk((g,cc)=>{ const px=DBG.pinch.x*cc.width, py=DBG.pinch.y*cc.height; const rad=cc.width*0.11; const smp=g.getImageData(Math.min(cc.width-2,Math.round(px+rad*1.3)),Math.min(cc.height-2,Math.round(py+rad*1.1)),1,1).data; g.fillStyle=`rgb(${smp[0]},${smp[1]},${smp[2]})`; g.beginPath(); g.arc(px,py,rad,0,7); g.fill(); });
       for(let i=0;i<6;i++){ step(cc,cc.width,cc.height,performance.now()+1500+i*70); await new Promise(r=>setTimeout(r,80)); } console.log('eatTest done kaki',k0,'->',S.kaki,'pea=',S.pea,'kindAfter=',DBG.kind); } }; }
 draw();
 </script></body></html>

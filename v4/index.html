@@ -75,11 +75,11 @@ const SPR_READY=(async()=>{ let list=null; try{ list=await (await fetch('sprites
   for(const k of ['K','P']) for(const f of files[k]){ const im=new Image(); im.src='sprites/'+f+'?v=5'; SPR[k].push(im); ps.push(im.decode().catch(()=>{})); }
   await Promise.all(ps); SPR.K=SPR.K.filter(i=>i.naturalWidth); SPR.P=SPR.P.filter(i=>i.naturalWidth); console.log('sprites',SPR.K.length,SPR.P.length); })();
 const S={run:false,t0:0,left:18,active:[],landed:0,bites:0,combo:0,lastBite:0,fillLine:0,done:false,lastScore:0};
-const DUR=18000, FULL=380; const rnd=(a,b)=>a+Math.random()*(b-a);
+const DUR=18000, FULL=560; const rnd=(a,b)=>a+Math.random()*(b-a);
 const L=()=>W*0.14;
 function spawn(kind,n){ for(let i=0;i<n;i++){ const arr=SPR[kind]; if(!arr.length) continue; S.active.push({k:kind,s:arr[Math.floor(Math.random()*arr.length)],x:rnd(0.03,0.97)*W,y:-rnd(0.05,1.1)*H,vy:rnd(1.1,2.0),vx:rnd(-0.1,0.1),r:rnd(-Math.PI,Math.PI),vr:rnd(-0.05,0.05),sc:rnd(0.8,1.25),blur:1}); } }
 function bite(){ const now=performance.now(); if(now-S.lastBite<450) return; S.combo=(now-S.lastBite<3000)?S.combo+1:1; S.lastBite=now; S.bites++;
-  const n=Math.min(70, 26+S.combo*7); spawn('K',Math.round(n*0.7)); spawn('P',Math.round(n*0.3)); flash(S.combo>=3?`カリッ ×${S.combo}`:'カリッ！'); SFX.crunch(); if(S.combo>=2){ $('combo').textContent=`COMBO ×${S.combo}`; $('combo').style.opacity=1; clearTimeout(bite._t); bite._t=setTimeout(()=>$('combo').style.opacity=0,1500);} }
+  const n=Math.min(84, 34+S.combo*8); spawn('K',Math.round(n*0.7)); spawn('P',Math.round(n*0.3)); flash(S.combo>=3?`カリッ ×${S.combo}`:'カリッ！'); SFX.crunch(); if(S.combo>=2){ $('combo').textContent=`COMBO ×${S.combo}`; $('combo').style.opacity=1; clearTimeout(bite._t); bite._t=setTimeout(()=>$('combo').style.opacity=0,1500);} }
 function flash(s){ const d=$('det'); d.textContent=s; d.classList.remove('on'); void d.offsetWidth; d.classList.add('on'); }
 function drawSprite(g,p,trail){ const im=p.s; if(!im||!im.naturalWidth) return false; const Lp=L()*p.sc; const big=Math.max(im.naturalWidth,im.naturalHeight); const k=(p.k==='K'?1:0.66)*Lp/big; const w=im.naturalWidth*k, h=im.naturalHeight*k;
   g.save(); g.translate(p.x,p.y); g.rotate(p.r);
@@ -88,7 +88,7 @@ function drawSprite(g,p,trail){ const im=p.s; if(!im||!im.naturalWidth) return f
 function drawOnce(){ window.__f=(window.__f||0)+1; ctx.clearRect(0,0,W,H); const Lp=L(); S.fillLine=H-Math.min(H*0.985,(S.landed/FULL)*H*0.985);
   const keep=[]; let landedNow=0;
   for(const p of S.active){ p.vy+=0.06; p.y+=p.vy*Lp*0.11; p.x+=p.vx*Lp*0.05; p.r+=p.vr; const line=S.fillLine-rnd(0,Lp*0.9);
-    if(p.y>=line){ p.y=Math.min(H+Lp*0.3,line+rnd(-Lp*0.15,Lp*0.45)); p.r+= rnd(-0.3,0.3); if(drawSprite(hctx,p,false)){ S.landed++; landedNow++; } else keep.push(p); }
+    if(p.y>=line){ p.y=Math.min(H+Lp*0.3,line+rnd(-Lp*0.15,Lp*0.45)); p.r+= rnd(-0.3,0.3); p.sc*=1.06; if(drawSprite(hctx,p,false)){ S.landed++; landedNow++; } else keep.push(p); }
     else { drawSprite(ctx,p,true); keep.push(p); } }
   S.active=keep; if(landedNow>0) SFX.land(landedNow);
   $('fv').textContent=Math.round(Math.min(1,S.landed/FULL)*100)+'%';

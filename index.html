@@ -82,19 +82,19 @@ function fit(){ const dpr=Math.min(2,devicePixelRatio||1); W=cv.width=hc.width=i
 // ---- sprites ----
 const SPR={K:[],P:[]}; const SPR_READY=(async()=>{ const ps=[]; for(const k of ['K','P']) for(let i=0;i<6;i++){ const im=new Image(); im.src=`sprites/${k.toLowerCase()}${i}.png`; SPR[k].push(im); ps.push(im.decode().catch(e=>console.warn('sprite',im.src,e))); } await Promise.all(ps); console.log('sprites ready'); })();
 const S={run:false,t0:0,left:18,active:[],landed:0,kaki:0,pea:0,fillLine:0,done:false,lastScore:0};
-const DUR=18000, GRAV=0.0032, FULL=360; // FULL個で画面が埋まる
+const DUR=18000, GRAV=0.05, FULL=340; // FULL個で画面が埋まる
 const rnd=(a,b)=>a+Math.random()*(b-a);
 function pieceSize(){ return W*0.135; } // 柿の種の長さ（画面幅比）
-function spawn(kind,n){ for(let i=0;i<n;i++){ S.active.push({k:kind,s:SPR[kind][Math.floor(Math.random()*SPR[kind].length)],x:rnd(0.04,0.96)*W,y:-rnd(0.05,0.9)*H,vy:rnd(0.6,1.4),vx:rnd(-0.15,0.15),r:rnd(-Math.PI,Math.PI),vr:rnd(-0.03,0.03),sc:rnd(0.85,1.15)}); } if(kind==='K')S.kaki+=n; else S.pea+=n; updBar(); }
+function spawn(kind,n){ for(let i=0;i<n;i++){ S.active.push({k:kind,s:SPR[kind][Math.floor(Math.random()*SPR[kind].length)],x:rnd(0.04,0.96)*W,y:-rnd(0.05,0.9)*H,vy:rnd(0.8,1.6),vx:rnd(-0.12,0.12),r:rnd(-Math.PI,Math.PI),vr:rnd(-0.03,0.03),sc:rnd(0.85,1.15)}); } if(kind==='K')S.kaki+=n; else S.pea+=n; updBar(); }
 function burst(kind){ const el=Math.min(1,(performance.now()-S.t0)/DUR); const n=Math.round(kind==='K'?(22+el*40):(12+el*24)); spawn(kind,n); flash(kind==='K'?'柿の種！':'ピーナッツ！'); }
 function updBar(){ const t=S.kaki+S.pea; const r=t?S.kaki/t:0.7; $('fill').style.width=(r*100).toFixed(1)+'%'; }
 let flashT=null; function flash(s){ const d=$('det'); d.textContent=s; d.style.opacity=1; clearTimeout(flashT); flashT=setTimeout(()=>d.style.opacity=0,500); }
 function drawSprite(g,p){ const im=p.s; if(!im.complete||!im.naturalWidth){ p.y=Math.min(p.y,S.fillLine-pieceSize()); return false; } const L=pieceSize()*p.sc; const ar=im.naturalHeight/im.naturalWidth; let w,h; if(p.k==='K'){ const big=Math.max(im.naturalWidth,im.naturalHeight); w=L*im.naturalWidth/big; h=L*im.naturalHeight/big; } else { const big=Math.max(im.naturalWidth,im.naturalHeight); w=L*0.62*im.naturalWidth/big; h=L*0.62*im.naturalHeight/big; }
   g.save(); g.translate(p.x,p.y); g.rotate(p.r); g.shadowColor='rgba(0,0,0,.35)'; g.shadowBlur=L*0.08; g.shadowOffsetY=L*0.04; g.drawImage(im,-w/2,-h/2,w,h); g.restore(); return true; }
 function draw(){ ctx.clearRect(0,0,W,H); const L=pieceSize(); S.fillLine=H-Math.min(H*0.97, (S.landed/FULL)*H*0.97);
-  const keep=[]; for(const p of S.active){ p.vy+=GRAV*L*0.02; p.y+=p.vy*L*0.06; p.x+=p.vx*L*0.06; p.r+=p.vr; const line=S.fillLine-rnd(0,L*0.5); if(p.y>=line){ p.y=Math.min(H+L*0.2,line+rnd(-L*0.1,L*0.35)); if(drawSprite(hctx,p)) S.landed++; else keep.push(p); } else { drawSprite(ctx,p); keep.push(p);} } S.active=keep;
+  const keep=[]; for(const p of S.active){ p.vy+=GRAV; p.y+=p.vy*L*0.12; p.x+=p.vx*L*0.06; p.r+=p.vr; const line=S.fillLine-rnd(0,L*0.5); if(p.y>=line){ p.y=Math.min(H+L*0.2,line+rnd(-L*0.1,L*0.35)); if(drawSprite(hctx,p)) S.landed++; else keep.push(p); } else { drawSprite(ctx,p); keep.push(p);} } S.active=keep;
   if(DBG.on) drawDebug();
-  if(S.run){ const el=performance.now()-S.t0; S.left=Math.max(0,(DUR-el)/1000); $('tn').textContent=S.left<10?S.left.toFixed(1):Math.ceil(S.left); $('arc').setAttribute('stroke-dashoffset',String(270*(1-S.left/18))); if(el>=DUR&&S.active.length===0) finish(); else if(el>=DUR+1500) finish(); }
+  if(S.run){ const el=performance.now()-S.t0; S.left=Math.max(0,(DUR-el)/1000); $('tn').textContent=S.left<10?S.left.toFixed(1):Math.ceil(S.left); $('arc').setAttribute('stroke-dashoffset',String(270*(1-S.left/18))); if(el>=DUR&&S.active.length===0) finish(); else if(el>=DUR+4000) finish(); }
   requestAnimationFrame(draw); }
 function finish(){ if(S.done)return; S.done=true; S.run=false; const fill=Math.min(1,S.landed/FULL); const t=S.kaki+S.pea; const r=t?S.kaki/t:0; const match=t?Math.max(0,1-Math.abs(r-0.7)/0.7):0; const score=Math.round(fill*match*100);
   $('r1').textContent=Math.round(fill*100)+'%'; $('r2').textContent=(r*10).toFixed(1)+':'+((1-r)*10).toFixed(1); $('r3').textContent=Math.round(match*100)+'%'; $('r4').textContent=score; $('r5').textContent=`FILL ${Math.round(fill*100)}% × MATCH ${Math.round(match*100)}% = ${score}`; S.lastScore=score; $('res').classList.add('on'); }

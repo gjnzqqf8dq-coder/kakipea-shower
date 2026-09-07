@@ -85,7 +85,7 @@ function drawSprite(g,p,trail){ const im=p.s; if(!im||!im.naturalWidth) return f
   g.save(); g.translate(p.x,p.y); g.rotate(p.r);
   if(trail&&p.vy>1.2){ g.globalAlpha=0.28; g.drawImage(im,-w/2,-h/2-p.vy*Lp*0.10,w,h); g.globalAlpha=0.55; g.drawImage(im,-w/2,-h/2-p.vy*Lp*0.05,w,h); g.globalAlpha=1; }
   g.shadowColor='rgba(0,0,0,.4)'; g.shadowBlur=Lp*0.10; g.shadowOffsetY=Lp*0.05; g.drawImage(im,-w/2,-h/2,w,h); g.restore(); return true; }
-function draw(){ window.__f=(window.__f||0)+1; ctx.clearRect(0,0,W,H); const Lp=L(); S.fillLine=H-Math.min(H*0.985,(S.landed/FULL)*H*0.985);
+function drawOnce(){ window.__f=(window.__f||0)+1; ctx.clearRect(0,0,W,H); const Lp=L(); S.fillLine=H-Math.min(H*0.985,(S.landed/FULL)*H*0.985);
   const keep=[]; let landedNow=0;
   for(const p of S.active){ p.vy+=0.06; p.y+=p.vy*Lp*0.11; p.x+=p.vx*Lp*0.05; p.r+=p.vr; const line=S.fillLine-rnd(0,Lp*0.9);
     if(p.y>=line){ p.y=Math.min(H+Lp*0.3,line+rnd(-Lp*0.15,Lp*0.45)); p.r+= rnd(-0.3,0.3); if(drawSprite(hctx,p,false)){ S.landed++; landedNow++; } else keep.push(p); }
@@ -93,7 +93,9 @@ function draw(){ window.__f=(window.__f||0)+1; ctx.clearRect(0,0,W,H); const Lp=
   S.active=keep; if(landedNow>0) SFX.land(landedNow);
   $('fv').textContent=Math.round(Math.min(1,S.landed/FULL)*100)+'%';
   if(S.run){ const el=performance.now()-S.t0; S.left=Math.max(0,(DUR-el)/1000); $('tn').textContent=S.left<10?S.left.toFixed(1):Math.ceil(S.left); $('arc').setAttribute('stroke-dashoffset',String(283*(1-S.left/18))); if(el>=DUR&&S.active.length===0) finish(); else if(el>=DUR+4000) finish(); }
-  requestAnimationFrame(draw); }
+}
+function draw(){ drawOnce(); requestAnimationFrame(draw); }
+window.__adv=(n)=>{ for(let i=0;i<n;i++) drawOnce(); };
 function finish(){ if(S.done)return; S.done=true; S.run=false; const fill=Math.min(1,S.landed/FULL); const score=Math.round(fill*100); $('r4').textContent=score+'%'; $('r5').textContent=`${S.bites}口で、画面の${score}%が柿ピー。`; S.lastScore=score; SFX.result(); BGM.stop(); $('res').classList.add('on'); }
 function startGame(){ S.active=[];S.landed=0;S.bites=0;S.combo=0;S.lastBite=0;S.run=true;S.done=false;S.t0=performance.now(); hctx.clearRect(0,0,W,H); $('start').classList.remove('on'); $('res').classList.remove('on'); BGM.start(); $('status').textContent='柿の種を口元へ。カリッ。'; }
 $('again').onclick=()=>{ $('res').classList.remove('on'); startGame(); };

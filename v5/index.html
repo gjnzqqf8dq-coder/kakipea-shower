@@ -200,7 +200,12 @@ function step(src,vw,vh,ts){ if(!ready) return; let pinch=null,mouth=null,faceW=
 async function mic(stream){ try{ const ac=audio(); const src=ac.createMediaStreamSource(stream); const an=ac.createAnalyser(); an.fftSize=1024; src.connect(an); const buf=new Float32Array(an.fftSize); let avg=0.01; (function tick(){ an.getFloatTimeDomainData(buf); let s=0; for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i]; const rms=Math.sqrt(s/buf.length); if(rms>avg*4.5&&rms>0.07&&E.armed&&performance.now()-E.armedAt<3000){ E.armed=false; bite(); } avg=avg*0.95+rms*0.05; requestAnimationFrame(tick); })(); }catch(e){} }
 async function initCam(){ const v=$('cam'); const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720},height:{ideal:1280}},audio:true}); v.srcObject=st; await v.play(); mic(st); let last=-1;
   (function loop(){ if(v.readyState>=2&&v.currentTime!==last){ last=v.currentTime; step(v,v.videoWidth,v.videoHeight,performance.now()); } setTimeout(loop,66); })(); }
-$('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中…'; audio(); try{ await SPR_READY; if(!DEMO) await initCam(); await loadModels(); startGame(); }catch(e){ console.warn(e); $('status').textContent='カメラが使えません：画面タップ／スペースキーで「食べた」入力'; q.set('tap','1'); await loadModels().catch(()=>{}); startGame(); } };
+const withTimeout=(p,ms,label)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(label+' timeout')),ms))]);
+$('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中…'; audio(); await SPR_READY;
+  let camOK=false; if(!DEMO){ try{ await withTimeout(initCam(),9000,'camera'); camOK=true; }catch(e){ console.warn('camera',e); } }
+  if(camOK){ try{ $('go').textContent='認識を準備中…'; await withTimeout(loadModels(),30000,'models'); }catch(e){ console.warn('models',e); camOK=false; } }
+  if(!camOK&&!DEMO){ q.set('tap','1'); $('status').textContent='カメラ／認識が使えないため、画面タップで「食べた」判定にしています'; }
+  startGame(); };
 window.__dbg=()=>({active:S.active.length,landed:S.landed,bites:S.bites,frames:window.__f,spr:[SPR.K.length,SPR.P.length]});
 if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'; $('cam').style.display='none'; im.onload=async()=>{ await SPR_READY; if(!q.get('nomodel')){ await loadModels(); for(let i=0;i<4;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+i*70); await new Promise(r=>setTimeout(r,80)); } }
     if(q.get('auto')){ startGame(); BGM.stop(); S.t0=performance.now()-(parseFloat(q.get('at')||'8'))*1000; const nb=parseInt(q.get('bites')||'6'); for(let i=0;i<nb;i++){ S.lastBite=0; bite(); } } }; }

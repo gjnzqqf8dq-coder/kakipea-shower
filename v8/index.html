@@ -105,12 +105,12 @@
   .ratio{display:none!important}
   #stage:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,rgba(0,0,0,0) 40%,rgba(30,0,40,.55) 100%);z-index:1}
   .shade-top{background:linear-gradient(rgba(40,0,60,.75),rgba(0,0,0,0))}
-  #logo{position:absolute;left:0;width:100%;top:calc(env(safe-area-inset-top,0px) + 190*var(--u));text-align:center;font-size:calc(52*var(--u));font-weight:900;letter-spacing:2px;color:#ffb347;-webkit-text-stroke:calc(2*var(--u)) #ff2fb3;text-shadow:0 0 calc(12*var(--u)) #ff2fb3,0 0 calc(30*var(--u)) #ff2fb3,0 0 calc(6*var(--u)) #fff;z-index:2}
+  #logo{position:absolute;left:0;width:100%;top:calc(env(safe-area-inset-top,0px) + 196*var(--u));text-align:center;font-size:calc(40*var(--u));font-weight:900;letter-spacing:2px;color:#ffb347;-webkit-text-stroke:calc(2*var(--u)) #ff2fb3;text-shadow:0 0 calc(12*var(--u)) #ff2fb3,0 0 calc(30*var(--u)) #ff2fb3,0 0 calc(6*var(--u)) #fff;z-index:2}
   #timer{top:calc(env(safe-area-inset-top,0px) + 270*var(--u));background:rgba(20,0,30,.7);border-color:#ff2fb3;box-shadow:0 0 calc(24*var(--u)) #ff2fb3,inset 0 0 calc(18*var(--u)) rgba(255,47,179,.5)}
   #timer .n{color:#fff;text-shadow:0 0 calc(14*var(--u)) #ff9900}
   #timer svg circle{stroke:#ff9900;filter:drop-shadow(0 0 calc(8*var(--u)) #ff9900)}
   #phrase{top:calc(env(safe-area-inset-top,0px) + 520*var(--u));gap:calc(10*var(--u))}
-  #phrase .u{width:calc(132*var(--u));height:calc(132*var(--u));border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.25),rgba(0,0,0,.55) 70%);border:calc(5*var(--u)) solid rgba(255,255,255,.35);box-shadow:0 0 calc(18*var(--u)) rgba(255,47,179,.45),inset 0 0 calc(14*var(--u)) rgba(0,0,0,.5);font-size:0;color:transparent;overflow:visible}
+  #phrase .u{width:calc(132*var(--u));height:calc(132*var(--u));border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(90,20,110,.95),rgba(15,0,25,.95) 70%);border:calc(5*var(--u)) solid rgba(255,120,220,.8);box-shadow:0 0 calc(18*var(--u)) rgba(255,47,179,.45),inset 0 0 calc(14*var(--u)) rgba(0,0,0,.5);font-size:0;color:transparent;overflow:visible}
   #phrase .u.k,#phrase .u.p{background-color:transparent}
   #phrase .u img{width:78%;height:78%;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))}
   #phrase .u.now{transform:scale(1.28);border-color:#fff;box-shadow:0 0 0 calc(6*var(--u)) #ff2fb3,0 0 calc(40*var(--u)) #ff9900,0 0 calc(80*var(--u)) #ff2fb3}
@@ -331,6 +331,10 @@ $('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中
   startGame(); };
 window.__dbg=()=>({active:S.active.length,landed:S.landed,bites:S.bites,frames:window.__f,spr:[SPR.K.length,SPR.P.length]});
 if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'; $('cam').style.display='none'; im.onload=async()=>{ await SPR_READY; if(!q.get('nomodel')){ await loadModels(); for(let i=0;i<4;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+i*70); await new Promise(r=>setTimeout(r,80)); } }
-    if(q.get('auto')){ startGame(); BGM.stop(); S.t0=performance.now()-(parseFloat(q.get('at')||'8'))*1000; const nb=parseInt(q.get('bites')||'6'); for(let i=0;i<nb;i++){ S.lastBite=0; bite(); } } }; }
+    if(q.get('auto')){ startGame(); BGM.stop(); S.t0=performance.now()-(parseFloat(q.get('at')||'8'))*1000; const nb=parseInt(q.get('bites')||'6'); for(let i=0;i<nb;i++){ S.lastBite=0; bite(); } }
+    if(q.get('shot')){ const st=q.get('shot'); S.run=true; S.done=false; S.t0=performance.now()-14000; hctx.clearRect(0,0,W,H); $('start').classList.remove('on'); R.units=['k','k','p','p','k','k','k']; showPhrase(R.units); R.phase='idle';
+      if(st==='listen'){ ui('phase').textContent='LISTEN'; ui('phrase').children[2].classList.add('now'); }
+      if(st==='say'){ ui('phase').textContent='SAY IT!'; [0,1,2,3].forEach(i=>ui('phrase').children[i].classList.add('ok')); ui('phrase').children[4].classList.add('now'); S.combo=4; for(let i=0;i<4;i++){ S.lastBite=0; rain(['k','k','p','p'][i],1); } judge('PERFECT','#ffe600'); $('combo').textContent='×4 COMBO'; $('combo').style.opacity=1; }
+      if(st==='result'){ for(let i=0;i<9;i++){ S.lastBite=0; rain('k',1); } setTimeout(()=>{ finish(); },50); } } }; }
 draw();
 </script></body></html>

@@ -111,7 +111,7 @@
   #timer svg circle{stroke:#ff9900;filter:drop-shadow(0 0 calc(8*var(--u)) #ff9900)}
   #phrase{top:calc(env(safe-area-inset-top,0px) + 520*var(--u));gap:calc(10*var(--u))}
   #phrase .u{width:calc(132*var(--u));height:calc(132*var(--u));border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(90,20,110,.95),rgba(15,0,25,.95) 70%);border:calc(5*var(--u)) solid rgba(255,120,220,.8);box-shadow:0 0 calc(18*var(--u)) rgba(255,47,179,.45),inset 0 0 calc(14*var(--u)) rgba(0,0,0,.5);font-size:0;color:transparent;overflow:visible}
-  #phrase .u.k,#phrase .u.p{background-color:transparent}
+  #phrase .u.k,#phrase .u.p{background:radial-gradient(circle at 35% 30%,rgba(90,20,110,.95),rgba(15,0,25,.95) 70%)}
   #phrase .u img{width:78%;height:78%;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))}
   #phrase .u.now{transform:scale(1.28);border-color:#fff;box-shadow:0 0 0 calc(6*var(--u)) #ff2fb3,0 0 calc(40*var(--u)) #ff9900,0 0 calc(80*var(--u)) #ff2fb3}
   #phrase .u.ok{border-color:#ffe600;box-shadow:0 0 calc(30*var(--u)) #ffe600}
@@ -335,6 +335,6 @@ if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'
     if(q.get('shot')){ const st=q.get('shot'); S.run=true; S.done=false; S.t0=performance.now()-14000; hctx.clearRect(0,0,W,H); $('start').classList.remove('on'); R.units=['k','k','p','p','k','k','k']; showPhrase(R.units); R.phase='idle';
       if(st==='listen'){ ui('phase').textContent='LISTEN'; ui('phrase').children[2].classList.add('now'); }
       if(st==='say'){ ui('phase').textContent='SAY IT!'; [0,1,2,3].forEach(i=>ui('phrase').children[i].classList.add('ok')); ui('phrase').children[4].classList.add('now'); S.combo=4; for(let i=0;i<4;i++){ S.lastBite=0; rain(['k','k','p','p'][i],1); } judge('PERFECT','#ffe600'); $('combo').textContent='×4 COMBO'; $('combo').style.opacity=1; }
-      if(st==='result'){ for(let i=0;i<9;i++){ S.lastBite=0; rain('k',1); } setTimeout(()=>{ finish(); },50); } } }; }
+      if(st==='result'){ for(let i=0;i<9;i++){ S.lastBite=0; rain('k',1); } S.landed=520; finish(); } } }; }
 draw();
 </script></body></html>

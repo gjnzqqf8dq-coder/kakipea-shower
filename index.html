@@ -81,6 +81,7 @@ const cv=$('c'), ctx=cv.getContext('2d'), hc=$('heap'), hctx=hc.getContext('2d')
 function fit(){ const dpr=Math.min(2,devicePixelRatio||1); W=cv.width=hc.width=innerWidth*dpr; H=cv.height=hc.height=innerHeight*dpr; } fit(); addEventListener('resize',fit);
 // ---- sprites ----
 const SPR={K:[],P:[]}; const SPR_READY=(async()=>{ const ps=[]; for(const k of ['K','P']) for(let i=0;i<6;i++){ const im=new Image(); im.src=`sprites/${k.toLowerCase()}${i}.png?v=4`; SPR[k].push(im); ps.push(im.decode().catch(e=>console.warn('sprite',im.src,e))); } await Promise.all(ps); console.log('sprites ready'); })();
+window.__dbg=()=>({active:S.active.length,landed:S.landed,kaki:S.kaki,pea:S.pea,fill:S.fillLine,W,H,spr:SPR.K.map(i=>i.naturalWidth),frames:window.__f});
 const S={run:false,t0:0,left:18,active:[],landed:0,kaki:0,pea:0,fillLine:0,done:false,lastScore:0};
 const DUR=18000, GRAV=0.05, FULL=340; // FULL個で画面が埋まる
 const rnd=(a,b)=>a+Math.random()*(b-a);
@@ -91,7 +92,7 @@ function updBar(){ const t=S.kaki+S.pea; const r=t?S.kaki/t:0.7; $('fill').style
 let flashT=null; function flash(s){ const d=$('det'); d.textContent=s; d.style.opacity=1; clearTimeout(flashT); flashT=setTimeout(()=>d.style.opacity=0,500); }
 function drawSprite(g,p){ const im=p.s; if(!im.complete||!im.naturalWidth){ p.y=Math.min(p.y,S.fillLine-pieceSize()); return false; } const L=pieceSize()*p.sc; const ar=im.naturalHeight/im.naturalWidth; let w,h; if(p.k==='K'){ const big=Math.max(im.naturalWidth,im.naturalHeight); w=L*im.naturalWidth/big; h=L*im.naturalHeight/big; } else { const big=Math.max(im.naturalWidth,im.naturalHeight); w=L*0.62*im.naturalWidth/big; h=L*0.62*im.naturalHeight/big; }
   g.save(); g.translate(p.x,p.y); g.rotate(p.r); g.shadowColor='rgba(0,0,0,.35)'; g.shadowBlur=L*0.08; g.shadowOffsetY=L*0.04; g.drawImage(im,-w/2,-h/2,w,h); g.restore(); return true; }
-function draw(){ ctx.clearRect(0,0,W,H); const L=pieceSize(); S.fillLine=H-Math.min(H*0.97, (S.landed/FULL)*H*0.97);
+function draw(){ window.__f=(window.__f||0)+1; ctx.clearRect(0,0,W,H); const L=pieceSize(); S.fillLine=H-Math.min(H*0.97, (S.landed/FULL)*H*0.97);
   const keep=[]; for(const p of S.active){ p.vy+=GRAV; p.y+=p.vy*L*0.12; p.x+=p.vx*L*0.06; p.r+=p.vr; const line=S.fillLine-rnd(0,L*0.5); if(p.y>=line){ p.y=Math.min(H+L*0.2,line+rnd(-L*0.1,L*0.35)); if(drawSprite(hctx,p)) S.landed++; else keep.push(p); } else { drawSprite(ctx,p); keep.push(p);} } S.active=keep;
   if(DBG.on) drawDebug();
   if(S.run){ const el=performance.now()-S.t0; S.left=Math.max(0,(DUR-el)/1000); $('tn').textContent=S.left<10?S.left.toFixed(1):Math.ceil(S.left); $('arc').setAttribute('stroke-dashoffset',String(270*(1-S.left/18))); if(el>=DUR&&S.active.length===0) finish(); else if(el>=DUR+4000) finish(); }
@@ -151,8 +152,8 @@ async function initCam(){ const v=$('cam'); const st=await navigator.mediaDevice
   (function loop(){ if(v.readyState>=2&&v.currentTime!==last){ last=v.currentTime; step(v,v.videoWidth,v.videoHeight,performance.now()); } setTimeout(loop,66); })(); }
 $('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中…'; try{ if(!DEMO) await initCam(); await loadModels(); $('start').classList.remove('on'); if(DEMO) startGame(); else startCal(); }catch(e){ console.warn(e); $('status').textContent='カメラが使えません：K / P キーで入力（デモ）'; await loadModels().catch(()=>{}); startGame(); } };
 // ---- デモ ----
-if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'; $('cam').style.display='none'; im.onload=async()=>{ await loadModels();
-    for(let i=0;i<6;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+i*70); await new Promise(r=>setTimeout(r,80)); }
+if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'; $('cam').style.display='none'; im.onload=async()=>{ if(q.get('nomodel')){ await SPR_READY; ready=false; } else await loadModels();
+    if(!q.get('nomodel')) for(let i=0;i<6;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+i*70); await new Promise(r=>setTimeout(r,80)); }
     if(q.get('auto')){ startGame(); S.t0=performance.now()-(parseFloat(q.get('at')||'8'))*1000; (q.get('seq')||'').split(',').filter(Boolean).forEach(k=>burst(k.trim())); }
     const mk=(fn)=>{ const cc=document.createElement('canvas'); cc.width=im.naturalWidth; cc.height=im.naturalHeight; const g=cc.getContext('2d'); g.drawImage(im,0,0); fn(g,cc); return cc; };
     if(q.get('peaTest')&&DBG.pinch){ const cc=mk((g,cc)=>{ const px=DBG.pinch.x*cc.width, py=DBG.pinch.y*cc.height; g.fillStyle='rgb(236,206,152)'; g.beginPath(); g.ellipse(px,py,cc.width*0.035,cc.width*0.022,0.4,0,7); g.fill(); g.fillStyle='rgb(214,178,120)'; g.beginPath(); g.ellipse(px+cc.width*0.01,py+cc.width*0.006,cc.width*0.012,cc.width*0.008,0.4,0,7); g.fill(); });

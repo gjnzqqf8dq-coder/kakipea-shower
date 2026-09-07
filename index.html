@@ -150,7 +150,7 @@ function drawOnce(){ window.__f=(window.__f||0)+1; ctx.clearRect(0,0,W,H); const
 function draw(){ drawOnce(); requestAnimationFrame(draw); }
 window.__adv=(n)=>{ for(let i=0;i<n;i++) drawOnce(); };
 function finish(){ if(S.done)return; S.done=true; S.run=false; const fill=Math.min(1,S.landed/FULL); const t=S.landedK+S.landedP; const r=t?S.landedK/t:0.7; const match=Math.max(0,1-Math.abs(r-0.7)/0.7); const score=Math.round(fill*100*match); $('r1').textContent=Math.round(fill*100)+'%'; $('r2').textContent=(r*10).toFixed(1)+':'+((1-r)*10).toFixed(1); $('r3').textContent=Math.round(match*100)+'%'; $('r4').textContent=score; $('r5').textContent=`${Math.round(fill*100)}% × ${Math.round(match*100)}% = ${score}`; S.lastScore=score; SFX.result(); BGM.stop(); $('timer').style.display='none'; $('res').classList.add('on'); }
-function startGame(){ S.active=[];S.landed=0;S.landedK=0;S.landedP=0;S.bites=0;S.combo=0;S.lastBite=0;S.run=true;S.done=false;S.t0=performance.now(); hctx.clearRect(0,0,W,H); updBar(); $('timer').style.display=''; $('start').classList.remove('on'); $('res').classList.remove('on'); BGM.start(); $('status').textContent='柿の種を口元へ。カリッ。'; }
+function startGame(){ S.active=[];S.landed=0;S.landedK=0;S.landedP=0;S.bites=0;S.combo=0;S.lastBite=0;S.run=true;S.done=false;S.t0=performance.now(); hctx.clearRect(0,0,W,H); updBar(); $('timer').style.display=''; $('start').classList.remove('on'); $('res').classList.remove('on'); BGM.start(); $('status').textContent=q.get('tap')?'画面をタップ ＝ 食べた（カメラなしモード）':'柿の種を口元へ。カリッ。'; }
 $('again').onclick=()=>{ $('res').classList.remove('on'); startGame(); };
 addEventListener('keydown',e=>{ if(!S.run)return; if(e.key===' '||e.key==='k'||e.key==='K'||e.key==='p'||e.key==='P') bite(); });
 $('c').addEventListener('pointerdown',()=>{ if(S.run&&(DEMO||q.get('tap'))) bite(); });
@@ -194,7 +194,7 @@ function step(src,vw,vh,ts){ if(!ready) return; let pinch=null,mouth=null,faceW=
   const near=!!(pinch&&mouth&&Math.hypot(pinch.x-mouth.x,pinch.y-mouth.y)<faceW*0.65) || (!pinch&&!!mouth);
   DBG.pinch=pinch;DBG.mouth=mouth;DBG.orange=o;DBG.near=near;
   if(o>0.08){ E.seen++; E.gone=0; if(E.seen>=2&&near){ E.armed=true; E.armedAt=performance.now(); } if(S.run) $('status').textContent='柿の種を認識。そのままカリッ。'; }
-  else { E.gone++; if(E.armed&&E.gone>=3&&performance.now()-E.armedAt<2500){ E.armed=false; E.seen=0; bite(); } if(E.gone>6){ E.seen=0; if(E.gone>40) E.armed=false; } if(S.run&&E.gone>10) $('status').textContent='柿の種を口元へ。カリッ。'; }
+  else { E.gone++; if(E.armed&&E.gone>=3&&performance.now()-E.armedAt<2500){ E.armed=false; E.seen=0; bite(); } if(E.gone>6){ E.seen=0; if(E.gone>40) E.armed=false; } if(S.run&&E.gone>10&&!q.get('tap')) $('status').textContent='柿の種を口元へ。カリッ。'; }
 }
 // マイク：口元に柿の種があった直後の「カリッ」で即確定
 async function mic(stream){ try{ const ac=audio(); const src=ac.createMediaStreamSource(stream); const an=ac.createAnalyser(); an.fftSize=1024; src.connect(an); const buf=new Float32Array(an.fftSize); let avg=0.01; (function tick(){ an.getFloatTimeDomainData(buf); let s=0; for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i]; const rms=Math.sqrt(s/buf.length); if(rms>avg*4.5&&rms>0.07&&E.armed&&performance.now()-E.armedAt<3000){ E.armed=false; bite(); } avg=avg*0.95+rms*0.05; requestAnimationFrame(tick); })(); }catch(e){} }

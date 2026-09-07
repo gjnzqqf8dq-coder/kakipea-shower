@@ -149,7 +149,7 @@ if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'
       E.hold=null;E.holdN=0;E.armed=null; for(let i=0;i<6;i++){ step(cc,cc.width,cc.height,performance.now()+500+i*70); await new Promise(r=>setTimeout(r,80)); } console.log('peaTest kind=',DBG.kind); }
     if(q.get('eatTest')&&DBG.pinch){ // 食べた判定テスト：指先の粒を肌色で塗りつぶす→消えた＝食べた
       for(let i=0;i<4;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+900+i*70); await new Promise(r=>setTimeout(r,80)); }
-      const k0=S.kaki; const cc=mk((g,cc)=>{ const px=DBG.pinch.x*cc.width, py=DBG.pinch.y*cc.height; const rad=cc.width*0.06; const smp=g.getImageData(Math.round(px+rad*1.6),Math.round(py+rad*1.2),1,1).data; g.fillStyle=`rgb(${smp[0]},${smp[1]},${smp[2]})`; g.beginPath(); g.arc(px,py,rad,0,7); g.fill(); });
+      const k0=S.kaki; const cc=mk((g,cc)=>{ const px=DBG.pinch.x*cc.width, py=DBG.pinch.y*cc.height; const rad=cc.width*0.11; const smp=g.getImageData(Math.round(px+rad*1.3),Math.round(py+rad*1.1),1,1).data; g.fillStyle=`rgb(${smp[0]},${smp[1]},${smp[2]})`; g.beginPath(); g.arc(px,py,rad,0,7); g.fill(); });
       for(let i=0;i<6;i++){ step(cc,cc.width,cc.height,performance.now()+1500+i*70); await new Promise(r=>setTimeout(r,80)); } console.log('eatTest done kaki',k0,'->',S.kaki,'pea=',S.pea,'kindAfter=',DBG.kind); } }; }
 draw();
 </script></body></html>

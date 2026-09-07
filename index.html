@@ -333,6 +333,7 @@ $('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中
   if(false){ try{ $('go').textContent='認識を準備中…'; await withTimeout(loadModels(),30000,'models'); }catch(e){ console.warn('models',e); camOK=false; } }
   if(!camOK&&!DEMO){ q.set('tap','1'); $('status').textContent='カメラ／認識が使えないため、画面タップで「食べた」判定にしています'; micStatus('🎤 マイク未接続'); }
   startGame(); };
+if(q.get('autogo')) setTimeout(()=>$('go').click(),1500);
 window.__dbg=()=>({active:S.active.length,landed:S.landed,bites:S.bites,frames:window.__f,spr:[SPR.K.length,SPR.P.length]});
 if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'; $('cam').style.display='none'; im.onload=async()=>{ await SPR_READY; try{ await loadVoice(); }catch(e){} if(!q.get('nomodel')){ await loadModels(); for(let i=0;i<4;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+i*70); await new Promise(r=>setTimeout(r,80)); } }
     if(q.get('auto')){ startGame(); BGM.stop(); S.t0=performance.now()-(parseFloat(q.get('at')||'8'))*1000; const nb=parseInt(q.get('bites')||'6'); for(let i=0;i<nb;i++){ S.lastBite=0; bite(); } }

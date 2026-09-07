@@ -178,8 +178,8 @@ $('share').onclick=async()=>{ const sc=$('shot'); sc.width=W; sc.height=H; const
   sc.toBlob(async b=>{ const f=new File([b],'kakipea.png',{type:'image/png'}); if(navigator.canShare&&navigator.canShare({files:[f]})){ try{await navigator.share({files:[f],text:'#柿ピーシャワー'});}catch(e){} } else { const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='kakipea.png'; a.click(); } }); };
 // ===================== 音（Web Audioで合成：外部音源なし）=====================
 let AC=null, master=null, muted=false;
-function audio(){ if(!AC){ AC=new (window.AudioContext||window.webkitAudioContext)(); master=AC.createGain(); master.gain.value=0.9; master.connect(AC.destination); } if(AC.state==='suspended') AC.resume(); return AC; }
-$('mute').onclick=()=>{ muted=!muted; $('mute').textContent=muted?'✕':'♪'; if(master) master.gain.value=muted?0:0.9; };
+function audio(){ if(!AC){ AC=new (window.AudioContext||window.webkitAudioContext)(); master=AC.createGain(); master.gain.value=0.45; master.connect(AC.destination); } if(AC.state==='suspended') AC.resume(); return AC; }
+$('mute').onclick=()=>{ muted=!muted; $('mute').textContent=muted?'✕':'♪'; if(master) master.gain.value=muted?0:0.45; };
 const SFX={ crunch(){ try{ const ac=audio(); const t=ac.currentTime; const n=ac.createBufferSource(); const len=Math.floor(ac.sampleRate*0.16); const buf=ac.createBuffer(1,len,ac.sampleRate); const d=buf.getChannelData(0); for(let i=0;i<len;i++){ const e=Math.exp(-i/(len*0.18)); d[i]=(Math.random()*2-1)*e*(i<len*0.05?1.4:1); } n.buffer=buf; const f=ac.createBiquadFilter(); f.type='bandpass'; f.frequency.value=2600; f.Q.value=0.7; const g=ac.createGain(); g.gain.setValueAtTime(0.9,t); g.gain.exponentialRampToValueAtTime(0.01,t+0.18); n.connect(f); f.connect(g); g.connect(master); n.start(t);
     const o=ac.createOscillator(); o.type='square'; o.frequency.setValueAtTime(1400,t); o.frequency.exponentialRampToValueAtTime(600,t+0.06); const og=ac.createGain(); og.gain.setValueAtTime(0.12,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.07); o.connect(og); og.connect(master); o.start(t); o.stop(t+0.08); }catch(e){} },
   _lt:0, land(n){ try{ const ac=audio(); const t=ac.currentTime; if(t-this._lt<0.05) return; this._lt=t; const cnt=Math.min(6,n); for(let i=0;i<cnt;i++){ const o=ac.createOscillator(); o.type='triangle'; o.frequency.value=rnd(1800,3200); const g=ac.createGain(); const tt=t+i*0.012; g.gain.setValueAtTime(0.05,tt); g.gain.exponentialRampToValueAtTime(0.001,tt+0.05); o.connect(g); g.connect(master); o.start(tt); o.stop(tt+0.06);} }catch(e){} },
@@ -244,7 +244,7 @@ function judge(t,c){ const j=$('judge'); j.textContent=t; j.style.color=c||'#fff
 function voiceEvent(kind){ // kind: 'k' or 'p'
   if(MODE!=='c'||!S.run) return; const now=performance.now(); let best=null; for(const n of R.notes){ if(n.done) continue; const d=Math.abs(n.t-now); if(d<220&&(!best||d<Math.abs(best.t-now))) best=n; }
   if(!best){ judge('…','#bbb'); return; }
-  best.done=true; if(best.kind===kind){ best.el.classList.add('hitok'); R.hit++; const d=Math.abs(best.t-now); judge(d<90?'PERFECT':'GOOD', d<90?'#FF9900':'#fff'); S.lastBite=0; if(kind==='k'){ S.combo++; S.bites++; spawn('K',Math.min(60,22+S.combo*6)); spawn('P',Math.round(Math.min(60,22+S.combo*6)*0.3)); } else { S.combo++; S.bites++; spawn('P',Math.min(50,18+S.combo*5)); spawn('K',Math.round(Math.min(50,18+S.combo*5)*0.5)); } SFX.crunch(); }
+  best.done=true; if(kind===null||best.kind===kind){ const kind2=kind||best.kind; kind=kind2; best.el.classList.add('hitok'); R.hit++; const d=Math.abs(best.t-now); judge(d<90?'PERFECT':'GOOD', d<90?'#FF9900':'#fff'); S.lastBite=0; if(kind==='k'){ S.combo++; S.bites++; spawn('K',Math.min(60,22+S.combo*6)); spawn('P',Math.round(Math.min(60,22+S.combo*6)*0.3)); } else { S.combo++; S.bites++; spawn('P',Math.min(50,18+S.combo*5)); spawn('K',Math.round(Math.min(50,18+S.combo*5)*0.5)); } SFX.crunch(); }
   else { best.el.style.opacity=.25; R.miss++; S.combo=0; judge('ちがう','#f66'); } }
 // ===================== マイク解析（全モード共通の1本） =====================
 let MIC={ok:false,rms:0,peak:0.02,src:null};
@@ -256,23 +256,27 @@ async function mic(stream){
   try{ if(ac.state!=='running'){ await ac.resume(); } }catch(e){}
   if(ac.state!=='running'){ micStatus('🎤 画面をタップして音をON'); const once=()=>{ ac.resume(); micStatus('🎤 OK'); document.removeEventListener('pointerdown',once); }; document.addEventListener('pointerdown',once); }
   const an=ac.createAnalyser(); an.fftSize=2048; an.smoothingTimeConstant=0.2; srcNode.connect(an); const td=new Float32Array(an.fftSize); const fd=new Uint8Array(an.frequencyBinCount); let avg=0.01; const binHz=ac.sampleRate/an.fftSize; let voiceOn=false, voiceStart=0, tonalCount=0, frames=0, lastCr=0; MIC.ok=true; micStatus('🎤 OK');
+  const hist=[]; let floor=0.004, lastVoiceFlash=0;
   (function tick(){ an.getFloatTimeDomainData(td); an.getByteFrequencyData(fd); let s=0; for(let i=0;i<td.length;i++)s+=td[i]*td[i]; const rms=Math.sqrt(s/td.length); MIC.rms=rms; MIC.peak=Math.max(rms,MIC.peak*0.995,0.02);
+    hist.push(rms); if(hist.length>120) hist.shift(); if(hist.length>=30){ const srt=[...hist].sort((a,b)=>a-b); floor=Math.max(0.002, srt[Math.floor(srt.length*0.15)]); }
     $('mlv').style.width=Math.min(100,rms/MIC.peak*100)+'%';
     let lo=0,mid=0,hi=0; for(let i=0;i<fd.length;i++){ const f=i*binHz; if(f<400)lo+=fd[i]; else if(f<2500)mid+=fd[i]; else if(f<9000)hi+=fd[i]; } const tot=lo+mid+hi+1; const hiR=hi/tot, loR=lo/tot;
-    const now=performance.now();
-    // --- カリッ（A/B）：急峻＋高域。しきい値は端末の音量に自動追従 ---
-    const thr=Math.max(0.012, avg*3.2);
-    if(rms>thr&&hiR>0.22&&now-lastCr>350){ lastCr=now; if(MODE==='b'){ bite(); } else if(MODE==='a'&&E.armed&&now-E.armedAt<3500){ E.armed=false; E.seen=0; bite(); } }
-    // --- 声（C）：有声＝低中域中心で持続 ---
-    if(MODE==='c'){ const voiced=rms>Math.max(0.008,avg*2.2)&&(loR+mid/tot)>0.6; if(voiced&&!voiceOn){ voiceOn=true; voiceStart=now; tonalCount=0; frames=0; }
+    const now=performance.now(); const loud=rms>Math.max(0.01,floor*3.5);
+    if(DBG.on){ $('status').textContent=`rms ${rms.toFixed(3)} floor ${floor.toFixed(3)} hi ${hiR.toFixed(2)} ${loud?'LOUD':''}`; }
+    // --- カリッ（A/B）：急峻＋高域 ---
+    if(loud&&rms>avg*2.5&&hiR>0.2&&now-lastCr>350){ lastCr=now; if(MODE==='b'){ bite(); } else if(MODE==='a'&&E.armed&&now-E.armedAt<3500){ E.armed=false; E.seen=0; bite(); } }
+    // --- 声（C）：床より十分大きい音の「立ち上がり」を1回の発声として扱う ---
+    if(MODE==='c'){ const voiced=loud; if(voiced&&!voiceOn){ voiceOn=true; voiceStart=now; tonalCount=0; frames=0; if(now-lastVoiceFlash>300){ lastVoiceFlash=now; micStatus('🎤 声'); } }
       if(voiceOn){ frames++; let bestLag=0,best=0; const N=td.length; for(let lag=40;lag<400;lag+=2){ let c=0; for(let i=0;i<N-lag;i+=4) c+=td[i]*td[i+lag]; if(c>best){best=c;bestLag=lag;} } const f0=bestLag?ac.sampleRate/bestLag:0; if(f0>150&&best>0.6*s) tonalCount++;
-        if(!voiced||now-voiceStart>420){ voiceOn=false; const dur=now-voiceStart; const tonal=tonalCount/Math.max(1,frames); const kind=(dur>230&&tonal>0.45)?'p':'k'; micStatus('🎤 '+(kind==='p'?'ピー':'カキ')+' を検知'); voiceEvent(kind); } } }
+        // 立ち上がり直後（120ms）に判定：ノーツに当てる。種類は後で表示のみ
+        if(now-voiceStart>=120&&!voiceOn.judged){ voiceOn={judged:true}; voiceEvent(null); }
+        if(!voiced||now-voiceStart>500){ const dur=now-voiceStart; const tonal=tonalCount/Math.max(1,frames); micStatus('🎤 '+((dur>230&&tonal>0.45)?'ピー':'カキ')); voiceOn=false; } } }
     avg=avg*0.96+rms*0.04; requestAnimationFrame(tick); })(); }
-async function initCam(){ const v=$('cam'); const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720},height:{ideal:1280}},audio:true}); v.srcObject=st; await v.play(); mic(st); let last=-1;
+async function initCam(){ const v=$('cam'); const AUD={echoCancellation:true,noiseSuppression:true,autoGainControl:true}; let st; try{ st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720},height:{ideal:1280}},audio:AUD}); }catch(e){ console.warn('video+audio failed',e); st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:AUD}); } v.srcObject=st; await v.play(); mic(st); let last=-1;
   (function loop(){ if(MODE==='a'&&v.readyState>=2&&v.currentTime!==last){ last=v.currentTime; step(v,v.videoWidth,v.videoHeight,performance.now()); } setTimeout(loop,66); })(); }
 const withTimeout=(p,ms,label)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(label+' timeout')),ms))]);
 $('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中…'; audio(); micStatus('🎤 準備中'); await SPR_READY;
-  let camOK=false; if(!DEMO){ try{ await withTimeout(initCam(),9000,'camera'); camOK=true; }catch(e){ console.warn('camera',e); } }
+  let camOK=false; if(!DEMO){ try{ await withTimeout(initCam(),12000,'camera'); camOK=true; }catch(e){ console.warn('camera',e); try{ const st=await withTimeout(navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}),8000,'mic'); mic(st); }catch(e2){ console.warn('mic only failed',e2); } } }
   if(camOK&&MODE==='a'){ try{ $('go').textContent='認識を準備中…'; await withTimeout(loadModels(),30000,'models'); }catch(e){ console.warn('models',e); camOK=false; } }
   if(!camOK&&!DEMO){ q.set('tap','1'); $('status').textContent='カメラ／認識が使えないため、画面タップで「食べた」判定にしています'; micStatus('🎤 マイク未接続'); }
   startGame(); };

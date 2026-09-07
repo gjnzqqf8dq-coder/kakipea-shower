@@ -72,6 +72,21 @@
   #res .score .v{font-size:calc(260*var(--u));font-weight:900;line-height:1;color:var(--o);text-shadow:0 8px 30px rgba(0,0,0,.5)}
   #res .score .eq{font-size:calc(34*var(--u));font-weight:600;opacity:.9;margin-top:calc(10*var(--u))}
   #shot{position:absolute;left:-9999px;top:-9999px}
+  /* ---- リズムレーン（モードC） ---- */
+  #lane{position:absolute;left:0;width:100%;top:calc(env(safe-area-inset-top,0px) + 560*var(--u));height:calc(150*var(--u));display:none}
+  #lane.on{display:block}
+  #lane .bar{position:absolute;left:0;right:0;top:calc(30*var(--u));height:calc(90*var(--u));background:rgba(0,0,0,.55);border-top:calc(4*var(--u)) solid rgba(255,255,255,.35);border-bottom:calc(4*var(--u)) solid rgba(255,255,255,.35)}
+  #lane .hit{position:absolute;left:calc(160*var(--u));top:calc(14*var(--u));width:calc(122*var(--u));height:calc(122*var(--u));border:calc(8*var(--u)) solid #fff;border-radius:50%;box-sizing:border-box;box-shadow:0 0 0 calc(6*var(--u)) rgba(0,0,0,.4)}
+  #lane .note{position:absolute;top:calc(22*var(--u));width:calc(106*var(--u));height:calc(106*var(--u));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:calc(40*var(--u));font-weight:900;color:#111;box-shadow:0 6px 18px rgba(0,0,0,.4);will-change:transform}
+  #lane .note.k{background:#FF9900}#lane .note.p{background:#EBD6B0}
+  #lane .note.hitok{animation:hitok .35s ease-out forwards}
+  @keyframes hitok{to{transform:scale(1.6);opacity:0}}
+  #judge{position:absolute;left:calc(221*var(--u));top:calc(env(safe-area-inset-top,0px) + 470*var(--u));transform:translateX(-50%);font-size:calc(44*var(--u));font-weight:900;text-shadow:0 3px 10px #000;opacity:0;white-space:nowrap}
+  #judge.on{animation:pop .5s ease-out}
+  #modes{display:flex;gap:calc(20*var(--u));margin-top:calc(30*var(--u))}
+  #modes button{font-size:calc(26*var(--u));font-weight:800;padding:calc(18*var(--u)) calc(28*var(--u));border-radius:calc(40*var(--u));border:calc(3*var(--u)) solid #fff;background:rgba(0,0,0,.35);color:#fff}
+  #modes button.on{background:#fff;color:#111}
+  #modedesc{font-size:calc(24*var(--u));opacity:.9;margin-top:calc(16*var(--u));line-height:1.6}
 </style></head><body>
 <div id="stage">
   <video id="cam" autoplay playsinline muted></video><img id="still" alt="">
@@ -100,9 +115,10 @@
     <div><svg viewBox="0 0 24 24"><path d="M3 5h18v12H8l-5 4z"/></svg>受信箱</div>
     <div><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M3 22c0-5 4-8 9-8s9 3 9 8z"/></svg>プロフィール</div>
   </div>
+  <div id="lane"><div class="bar"></div><div class="hit"></div></div><div id="judge"></div>
   <div id="det"></div>
   <div id="status"></div>
-  <div id="start" class="ov on"><div class="big">START</div><div class="sub">柿の種を食べると、柿ピーが降ってくる。<br>18秒で、画面をどれだけ埋められる？</div><button class="btn" id="go">カメラをONにして START</button><div class="tiny">手元に亀田の柿の種を用意。口元まで持ってきて、カリッ。<br>映像は端末内だけで処理され、送信されません。</div></div>
+  <div id="start" class="ov on"><div class="big">START</div><div class="sub" id="subtxt">柿の種を食べると、柿ピーが降ってくる。<br>18秒で、画面をどれだけ埋められる？</div><div id="modes"><button data-m="a">A 見て判定</button><button data-m="b">B 音で判定</button><button data-m="c">C リズム</button></div><div id="modedesc"></div><button class="btn" id="go">カメラをONにして START</button><div class="tiny">手元に亀田の柿の種を用意。口元まで持ってきて、カリッ。<br>映像は端末内だけで処理され、送信されません。</div></div>
   <div id="res" class="ov">
     <div class="row"><div class="box"><div class="k">FILL</div><div class="v" id="r1">94%</div></div><div class="box"><div class="k">RATIO</div><div class="v" id="r2">7.2:2.8</div></div><div class="box"><div class="k">MATCH</div><div class="v" id="r3">98%</div></div></div>
     <div class="score"><div class="k">SCORE</div><div class="v" id="r4">92</div><div class="eq" id="r5">94% × 98% = 92</div></div>
@@ -149,10 +165,10 @@ function drawOnce(){ window.__f=(window.__f||0)+1; ctx.clearRect(0,0,W,H); const
 }
 function draw(){ drawOnce(); requestAnimationFrame(draw); }
 window.__adv=(n)=>{ for(let i=0;i<n;i++) drawOnce(); };
-function finish(){ if(S.done)return; S.done=true; S.run=false; const fill=Math.min(1,S.landed/FULL); const t=S.landedK+S.landedP; const r=t?S.landedK/t:0.7; const match=Math.max(0,1-Math.abs(r-0.7)/0.7); const score=Math.round(fill*100*match); $('r1').textContent=Math.round(fill*100)+'%'; $('r2').textContent=(r*10).toFixed(1)+':'+((1-r)*10).toFixed(1); $('r3').textContent=Math.round(match*100)+'%'; $('r4').textContent=score; $('r5').textContent=`${Math.round(fill*100)}% × ${Math.round(match*100)}% = ${score}`; S.lastScore=score; SFX.result(); BGM.stop(); $('timer').style.display='none'; $('res').classList.add('on'); }
-function startGame(){ S.active=[];S.landed=0;S.landedK=0;S.landedP=0;S.bites=0;S.combo=0;S.lastBite=0;S.run=true;S.done=false;S.t0=performance.now(); hctx.clearRect(0,0,W,H); updBar(); $('timer').style.display=''; $('start').classList.remove('on'); $('res').classList.remove('on'); BGM.start(); $('status').textContent=q.get('tap')?'画面をタップ ＝ 食べた（カメラなしモード）':'柿の種を口元へ。カリッ。'; }
+function finish(){ if(S.done)return; S.done=true; S.run=false; const fill=Math.min(1,S.landed/FULL); const t=S.landedK+S.landedP; const r=t?S.landedK/t:0.7; const match=Math.max(0,1-Math.abs(r-0.7)/0.7); const score=Math.round(fill*100*match); $('r1').textContent=Math.round(fill*100)+'%'; $('r2').textContent=(r*10).toFixed(1)+':'+((1-r)*10).toFixed(1); $('r3').textContent=Math.round(match*100)+'%'; $('r4').textContent=score; $('r5').textContent=`${Math.round(fill*100)}% × ${Math.round(match*100)}% = ${score}`; S.lastScore=score; SFX.result(); BGM.stop(); laneStop(); $('timer').style.display='none'; $('res').classList.add('on'); }
+function startGame(){ S.active=[];S.landed=0;S.landedK=0;S.landedP=0;S.bites=0;S.combo=0;S.lastBite=0;S.run=true;S.done=false;S.t0=performance.now(); hctx.clearRect(0,0,W,H); updBar(); $('timer').style.display=''; $('start').classList.remove('on'); $('res').classList.remove('on'); BGM.start(); $('status').textContent=q.get('tap')?'画面をタップ ＝ 食べた（カメラなしモード）':(MODE==='b'?'カリッと噛むと、降る。':MODE==='c'?'流れてきた柿／ピーに合わせて声に出す':'柿の種を口元へ。カリッ。'); if(MODE==='c'){ laneStart(); requestAnimationFrame(laneTick); } else laneStop(); }
 $('again').onclick=()=>{ $('res').classList.remove('on'); startGame(); };
-addEventListener('keydown',e=>{ if(!S.run)return; if(e.key===' '||e.key==='k'||e.key==='K'||e.key==='p'||e.key==='P') bite(); });
+addEventListener('keydown',e=>{ if(!S.run)return; if(MODE==='c'){ if(e.key==='k'||e.key==='K') voiceEvent('k'); if(e.key==='p'||e.key==='P') voiceEvent('p'); return; } if(e.key===' '||e.key==='k'||e.key==='K'||e.key==='p'||e.key==='P') bite(); });
 $('c').addEventListener('pointerdown',()=>{ if(S.run&&(DEMO||q.get('tap'))) bite(); });
 $('share').onclick=async()=>{ const sc=$('shot'); sc.width=W; sc.height=H; const g=sc.getContext('2d'); const src=DEMO?$('still'):$('cam'); g.save(); if(!DEMO){g.translate(W,0);g.scale(-1,1);} try{ const vw=src.videoWidth||src.naturalWidth, vh=src.videoHeight||src.naturalHeight; const s=Math.max(W/vw,H/vh); g.drawImage(src,(W-vw*s)/2,(H-vh*s)/2,vw*s,vh*s);}catch(e){} g.restore(); g.drawImage(hc,0,0); g.drawImage(cv,0,0); g.fillStyle='rgba(0,0,0,.28)'; g.fillRect(0,0,W,H); g.fillStyle='#FF9900'; g.textAlign='center'; g.font=`900 ${W*0.34}px Hiragino Sans, sans-serif`; g.fillText(String(S.lastScore),W/2,H*0.5); g.fillStyle='#fff'; g.font=`700 ${W*0.05}px Hiragino Sans, sans-serif`; g.fillText('#柿ピーシャワー',W/2,H*0.58);
   sc.toBlob(async b=>{ const f=new File([b],'kakipea.png',{type:'image/png'}); if(navigator.canShare&&navigator.canShare({files:[f]})){ try{await navigator.share({files:[f],text:'#柿ピーシャワー'});}catch(e){} } else { const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='kakipea.png'; a.click(); } }); };
@@ -177,7 +193,11 @@ const BGM={ timer:null, on:false,
         for(let s=0;s<4;s++){ const ts=tb+s*beat/4; const n=ch[(b+s)%3]+12; pluck(ts,nf(n),beat/4*0.9,0.09); } if(bi%2===1&&b===3) pluck(tb+beat/2,nf(ch[2]+24),beat/2,0.08); } };
     const tick=()=>{ if(!this.on) return; while(next<ac.currentTime+0.6){ schedBar(next,barI); barI++; next+=bar; } this.timer=setTimeout(tick,150); }; tick(); }catch(e){} },
   stop(){ this.on=false; clearTimeout(this.timer); } };
-// ===================== 認識：口元に柿の種が来て、消えたら「食べた」 =====================
+// ===================== モード =====================
+const MODE_DESC={a:'口元に柿の種を持ってきて、噛む。カメラ＋マイクで「食べた」を判定。',b:'「カリッ」の音だけで判定。噛むほど降る。',c:'上のレーンに流れてくる柿／ピーに合わせて「カキ」「ピー」と声に出す。合えば降る。'};
+let MODE=(q.get('mode')||'a'); const setMode=m=>{ MODE=m; document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.m===m)); $('modedesc').textContent=MODE_DESC[m]; if(m==='c'){ $('subtxt').innerHTML='流れてくる柿／ピーに合わせて、声に出す。<br>合うほど、柿ピーが降ってくる。'; } else { $('subtxt').innerHTML='柿の種を食べると、柿ピーが降ってくる。<br>18秒で、画面をどれだけ埋められる？'; } };
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.m)); setMode(MODE);
+// ===================== 認識A：口元に柿の種 → 消える（＋噛み動作 or 音）で「食べた」 =====================
 const DBG={on:!!q.get('debug'),pinch:null,mouth:null,orange:0,near:false};
 let hand=null, face=null, ready=false;
 async function loadModels(){ $('status').textContent='読み込み中…'; const fs=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
@@ -186,24 +206,62 @@ async function loadModels(){ $('status').textContent='読み込み中…'; const
   hand=await mk(HandLandmarker,H_URL,{numHands:1}); face=await mk(FaceLandmarker,F_URL,{numFaces:1}); ready=true; $('status').textContent=''; console.log('models ready'); }
 const oc=document.createElement('canvas'), octx=oc.getContext('2d',{willReadFrequently:true}); oc.width=48; oc.height=48;
 function orangeRatio(src,cx,cy,rad,vw,vh){ const x=Math.max(0,cx*vw-rad), y=Math.max(0,cy*vh-rad); octx.drawImage(src,x,y,rad*2,rad*2,0,0,48,48); const d=octx.getImageData(0,0,48,48).data; let n=0,o=0; for(let i=0;i<d.length;i+=4){ const r=d[i],g=d[i+1],b=d[i+2]; n++; const mx=Math.max(r,g,b), mn=Math.min(r,g,b); const s=mx?(mx-mn)/mx:0; let h=0; if(mx-mn>0){ if(mx===r)h=((g-b)/(mx-mn))%6; else if(mx===g)h=(b-r)/(mx-mn)+2; else h=(r-g)/(mx-mn)+4; h*=60; if(h<0)h+=360;} if(s>0.5&&h>=8&&h<=42&&mx>90) o++; } return o/n; }
-const E={seen:0,armed:false,armedAt:0,gone:0,lastEat:0};
-function step(src,vw,vh,ts){ if(!ready) return; let pinch=null,mouth=null,faceW=0.3,tipD=0;
-  try{ const fr=face.detectForVideo(src,ts); if(fr.faceLandmarks&&fr.faceLandmarks[0]){ const Lm=fr.faceLandmarks[0]; mouth={x:(Lm[13].x+Lm[14].x)/2,y:(Lm[13].y+Lm[14].y)/2}; faceW=Math.hypot(Lm[454].x-Lm[234].x,Lm[454].y-Lm[234].y); } }catch(e){}
+// 噛み検出：口の開閉（上下唇の距離／顔幅）が「開→閉」に変化
+const E={seen:0,armed:false,armedAt:0,gone:0,lastEat:0,mouthOpenMax:0,chewed:false};
+function step(src,vw,vh,ts){ if(!ready) return; let pinch=null,mouth=null,faceW=0.3,tipD=0,open=0;
+  try{ const fr=face.detectForVideo(src,ts); if(fr.faceLandmarks&&fr.faceLandmarks[0]){ const Lm=fr.faceLandmarks[0]; mouth={x:(Lm[13].x+Lm[14].x)/2,y:(Lm[13].y+Lm[14].y)/2}; faceW=Math.hypot(Lm[454].x-Lm[234].x,Lm[454].y-Lm[234].y); open=Math.hypot(Lm[13].x-Lm[14].x,Lm[13].y-Lm[14].y)/faceW; } }catch(e){}
   try{ const hr=hand.detectForVideo(src,ts); if(hr.landmarks&&hr.landmarks[0]){ const Lh=hr.landmarks[0]; pinch={x:(Lh[4].x+Lh[8].x)/2,y:(Lh[4].y+Lh[8].y)/2}; tipD=Math.hypot(Lh[4].x-Lh[8].x,Lh[4].y-Lh[8].y); } }catch(e){}
   let o=0; if(pinch) o=orangeRatio(src,pinch.x,pinch.y,Math.max(vw*0.03,tipD*vw*0.9),vw,vh); else if(mouth) o=orangeRatio(src,mouth.x,mouth.y+faceW*0.12,vw*0.06,vw,vh);
-  const near=!!(pinch&&mouth&&Math.hypot(pinch.x-mouth.x,pinch.y-mouth.y)<faceW*0.65) || (!pinch&&!!mouth);
+  const near=!!(pinch&&mouth&&Math.hypot(pinch.x-mouth.x,pinch.y-mouth.y)<faceW*0.5) || (!pinch&&!!mouth);
   DBG.pinch=pinch;DBG.mouth=mouth;DBG.orange=o;DBG.near=near;
-  if(o>0.08){ E.seen++; E.gone=0; if(E.seen>=2&&near){ E.armed=true; E.armedAt=performance.now(); } if(S.run) $('status').textContent='柿の種を認識。そのままカリッ。'; }
-  else { E.gone++; if(E.armed&&E.gone>=3&&performance.now()-E.armedAt<2500){ E.armed=false; E.seen=0; bite(); } if(E.gone>6){ E.seen=0; if(E.gone>40) E.armed=false; } if(S.run&&E.gone>10&&!q.get('tap')) $('status').textContent='柿の種を口元へ。カリッ。'; }
+  // 噛み：armed 後に口が開いてから閉じた
+  if(E.armed){ E.mouthOpenMax=Math.max(E.mouthOpenMax,open); if(E.mouthOpenMax>0.09&&open<0.045) E.chewed=true; }
+  if(o>0.08){ E.seen++; E.gone=0; if(E.seen>=2&&near&&!E.armed){ E.armed=true; E.armedAt=performance.now(); E.mouthOpenMax=open; E.chewed=false; } if(S.run) $('status').textContent='柿の種を認識。そのままカリッ。'; }
+  else { E.gone++;
+    // 「消えた」だけでは反応しない：噛み動作 or 直後の音（mic側）が必要
+    if(E.armed&&E.gone>=3&&E.chewed&&performance.now()-E.armedAt<3500){ E.armed=false; E.seen=0; bite(); }
+    if(E.gone>12){ E.seen=0; if(E.gone>50) E.armed=false; } if(S.run&&E.gone>10&&!q.get('tap')) $('status').textContent='柿の種を口元へ。カリッ。'; }
 }
-// マイク：口元に柿の種があった直後の「カリッ」で即確定
-async function mic(stream){ try{ const ac=audio(); const src=ac.createMediaStreamSource(stream); const an=ac.createAnalyser(); an.fftSize=1024; src.connect(an); const buf=new Float32Array(an.fftSize); let avg=0.01; (function tick(){ an.getFloatTimeDomainData(buf); let s=0; for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i]; const rms=Math.sqrt(s/buf.length); if(rms>avg*4.5&&rms>0.07&&E.armed&&performance.now()-E.armedAt<3000){ E.armed=false; bite(); } avg=avg*0.95+rms*0.05; requestAnimationFrame(tick); })(); }catch(e){} }
+// ===================== 認識B：カリッの音（広帯域の急峻な立ち上がり） =====================
+// ===================== 認識C：声の種類（カキ＝短い破裂／ピー＝伸ばす高い音） =====================
+const R={notes:[],bpm:96,nextT:0,idx:0,pattern:[],hit:0,miss:0,lastVoice:0,onsetAt:0,tonalMs:0,voicing:false};
+function laneStart(){ $('lane').classList.add('on'); R.notes=[]; R.bpm=96; R.idx=0; R.hit=0; R.miss=0; R.pattern=[]; R.nextT=performance.now()+1200; }
+function laneStop(){ $('lane').classList.remove('on'); R.notes.forEach(n=>n.el.remove()); R.notes=[]; }
+function laneTick(){ if(MODE!=='c'||!S.run) return; const now=performance.now(); const beat=60000/R.bpm;
+  if(now>=R.nextT){ // 次のノート：2小節ごとに速く
+    if(R.idx%8===0){ const pats=[['k','k','p','p'],['k','p','k','p'],['k','k','k','p'],['p','k','k','p']]; R.pattern=pats[Math.floor(Math.random()*pats.length)]; }
+    const kind=R.pattern[R.idx%R.pattern.length]; const el=document.createElement('div'); el.className='note '+kind; el.textContent=kind==='k'?'カキ':'ピー'; $('lane').appendChild(el);
+    R.notes.push({kind,el,t:now+beat*4,done:false}); R.idx++; R.nextT=now+beat; if(R.idx%8===0) R.bpm=Math.min(170,R.bpm+14); }
+  const travel=beat*4; const hitX=221*(innerWidth/1080), startX=innerWidth+60*(innerWidth/1080);
+  for(const n of R.notes){ const p=1-(n.t-now)/travel; const x=startX+(hitX-startX)*p; n.el.style.transform=`translateX(${x-53*(innerWidth/1080)}px)`; if(!n.done&&now>n.t+220){ n.done=true; n.el.style.opacity=.25; R.miss++; judge('MISS','#bbb'); } }
+  R.notes=R.notes.filter(n=>{ if(now>n.t+800){ n.el.remove(); return false;} return true; });
+  requestAnimationFrame(laneTick); }
+function judge(t,c){ const j=$('judge'); j.textContent=t; j.style.color=c||'#fff'; j.classList.remove('on'); void j.offsetWidth; j.classList.add('on'); }
+function voiceEvent(kind){ // kind: 'k' or 'p'
+  if(MODE!=='c'||!S.run) return; const now=performance.now(); let best=null; for(const n of R.notes){ if(n.done) continue; const d=Math.abs(n.t-now); if(d<220&&(!best||d<Math.abs(best.t-now))) best=n; }
+  if(!best){ judge('…','#bbb'); return; }
+  best.done=true; if(best.kind===kind){ best.el.classList.add('hitok'); R.hit++; const d=Math.abs(best.t-now); judge(d<90?'PERFECT':'GOOD', d<90?'#FF9900':'#fff'); S.lastBite=0; if(kind==='k'){ S.combo++; S.bites++; spawn('K',Math.min(60,22+S.combo*6)); spawn('P',Math.round(Math.min(60,22+S.combo*6)*0.3)); } else { S.combo++; S.bites++; spawn('P',Math.min(50,18+S.combo*5)); spawn('K',Math.round(Math.min(50,18+S.combo*5)*0.5)); } SFX.crunch(); }
+  else { best.el.style.opacity=.25; R.miss++; S.combo=0; judge('ちがう','#f66'); } }
+// ===================== マイク解析（全モード共通の1本） =====================
+// カリッ＝広帯域で急峻な立ち上がり（高域比率が高い） ／ 声＝有声（ピッチあり）。ピー＝伸ばす高い有声音、カキ＝短い
+async function mic(stream){ try{ const ac=audio(); const src=ac.createMediaStreamSource(stream); const an=ac.createAnalyser(); an.fftSize=2048; an.smoothingTimeConstant=0.2; src.connect(an); const td=new Float32Array(an.fftSize); const fd=new Uint8Array(an.frequencyBinCount); let avg=0.01; const binHz=ac.sampleRate/an.fftSize; let voiceOn=false, voiceStart=0, tonalCount=0, frames=0;
+  (function tick(){ an.getFloatTimeDomainData(td); an.getByteFrequencyData(fd); let s=0; for(let i=0;i<td.length;i++)s+=td[i]*td[i]; const rms=Math.sqrt(s/td.length);
+    let lo=0,mid=0,hi=0; for(let i=0;i<fd.length;i++){ const f=i*binHz; if(f<400)lo+=fd[i]; else if(f<2500)mid+=fd[i]; else if(f<9000)hi+=fd[i]; } const tot=lo+mid+hi+1; const hiR=hi/tot, loR=lo/tot;
+    const now=performance.now();
+    // --- カリッ（A/B）：急峻＋高域 ---
+    if(rms>avg*4&&rms>0.05&&hiR>0.28){ if(MODE==='b'){ bite(); } else if(MODE==='a'&&E.armed&&now-E.armedAt<3500){ E.armed=false; E.seen=0; bite(); } }
+    // --- 声（C）：有声＝低中域中心で持続 ---
+    if(MODE==='c'){ const voiced=rms>0.03&&loR+mid/tot>0.7; if(voiced&&!voiceOn){ voiceOn=true; voiceStart=now; tonalCount=0; frames=0; }
+      if(voiceOn){ frames++; // ピッチ検出（自己相関・簡易）
+        let bestLag=0,best=0; const N=td.length; for(let lag=40;lag<400;lag+=2){ let c=0; for(let i=0;i<N-lag;i+=4) c+=td[i]*td[i+lag]; if(c>best){best=c;bestLag=lag;} } const f0=bestLag?ac.sampleRate/bestLag:0; if(f0>150&&best>0.6*s) tonalCount++;
+        if(!voiced||now-voiceStart>420){ voiceOn=false; const dur=now-voiceStart; const tonal=tonalCount/Math.max(1,frames); const kind=(dur>230&&tonal>0.45)?'p':'k'; voiceEvent(kind); } } }
+    avg=avg*0.95+rms*0.05; requestAnimationFrame(tick); })(); }catch(e){} }
 async function initCam(){ const v=$('cam'); const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720},height:{ideal:1280}},audio:true}); v.srcObject=st; await v.play(); mic(st); let last=-1;
-  (function loop(){ if(v.readyState>=2&&v.currentTime!==last){ last=v.currentTime; step(v,v.videoWidth,v.videoHeight,performance.now()); } setTimeout(loop,66); })(); }
+  (function loop(){ if(MODE==='a'&&v.readyState>=2&&v.currentTime!==last){ last=v.currentTime; step(v,v.videoWidth,v.videoHeight,performance.now()); } setTimeout(loop,66); })(); }
 const withTimeout=(p,ms,label)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(label+' timeout')),ms))]);
 $('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中…'; audio(); await SPR_READY;
   let camOK=false; if(!DEMO){ try{ await withTimeout(initCam(),9000,'camera'); camOK=true; }catch(e){ console.warn('camera',e); } }
-  if(camOK){ try{ $('go').textContent='認識を準備中…'; await withTimeout(loadModels(),30000,'models'); }catch(e){ console.warn('models',e); camOK=false; } }
+  if(camOK&&MODE==='a'){ try{ $('go').textContent='認識を準備中…'; await withTimeout(loadModels(),30000,'models'); }catch(e){ console.warn('models',e); camOK=false; } }
   if(!camOK&&!DEMO){ q.set('tap','1'); $('status').textContent='カメラ／認識が使えないため、画面タップで「食べた」判定にしています'; }
   startGame(); };
 window.__dbg=()=>({active:S.active.length,landed:S.landed,bites:S.bites,frames:window.__f,spr:[SPR.K.length,SPR.P.length]});

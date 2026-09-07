@@ -116,7 +116,7 @@ const oc=document.createElement('canvas'), octx=oc.getContext('2d',{willReadFreq
 function rgb2hsv(r,g,b){ r/=255;g/=255;b/=255; const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn; let h=0; if(d){ if(mx===r)h=((g-b)/d)%6; else if(mx===g)h=(b-r)/d+2; else h=(r-g)/d+4; h*=60; if(h<0)h+=360;} return [h, mx?d/mx:0, mx]; }
 function classify(src,cx,cy,rad,vw,vh){ // cx,cy: 0..1 (source coords)
   const x=Math.max(0,cx*vw-rad), y=Math.max(0,cy*vh-rad); octx.drawImage(src,x,y,rad*2,rad*2,0,0,48,48); const d=octx.getImageData(0,0,48,48).data; let k=0,p=0,n=0;
-  for(let i=0;i<d.length;i+=4){ const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); n++; if(v>0.35&&s>0.5&&h>=12&&h<=42)k++; else if(v>0.55&&s>=0.12&&s<=0.48&&h>=22&&h<=52&&d[i]-d[i+2]>28)p++; }
+  for(let i=0;i<d.length;i+=4){ const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); n++; if(v>0.35&&s>0.5&&h>=12&&h<=42)k++; else if(v>0.6&&s>=0.18&&s<=0.5&&h>=30&&h<=55&&(d[i+1]-d[i+2])>(d[i]-d[i+1])*1.15&&d[i]-d[i+2]>40)p++; }
   const kr=k/n, pr=p/n; if(kr>0.10&&kr>pr*1.2)return ['K',kr]; if(pr>0.16&&pr>kr)return ['P',pr]; return [null,0]; }
 // 状態：持っている→口元→消えた＝食べた
 const E={hold:null,holdN:0,armed:null,armedAt:0,lostN:0,lastEat:0};
@@ -142,9 +142,14 @@ $('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中
 // ---- デモ（静止画で認識確認・スクリーンショット用）----
 if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'; $('cam').style.display='none'; im.onload=async()=>{ await loadModels(); // 静止画に対して数フレーム分回す
     for(let i=0;i<6;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+i*70); await new Promise(r=>setTimeout(r,80)); }
-    if(q.get('eatTest')&&DBG.pinch){ // 食べた判定テスト：指先の粒を肌色で塗りつぶした画像を数フレーム流す→消えた＝食べた
-      const cc=document.createElement('canvas'); cc.width=im.naturalWidth; cc.height=im.naturalHeight; const g=cc.getContext('2d'); g.drawImage(im,0,0); const px=DBG.pinch.x*cc.width, py=DBG.pinch.y*cc.height; const rad=cc.width*0.06; const sample=g.getImageData(Math.round(px+rad*1.6),Math.round(py+rad*1.2),1,1).data; g.fillStyle=`rgb(${sample[0]},${sample[1]},${sample[2]})`; g.beginPath(); g.arc(px,py,rad,0,7); g.fill();
-      for(let i=0;i<6;i++){ step(cc,cc.width,cc.height,performance.now()+1000+i*70); await new Promise(r=>setTimeout(r,80)); } console.log('eatTest done kaki=',S.kaki,'pea=',S.pea); }
-    if(q.get('auto')){ startGame(); S.t0=performance.now()-(parseFloat(q.get('at')||'8'))*1000; (q.get('seq')||'K,K,P,K,K,K,P,K,K,P').split(',').forEach(k=>burst(k.trim())); } }; }
+    if(q.get('auto')){ startGame(); S.t0=performance.now()-(parseFloat(q.get('at')||'8'))*1000; (q.get('seq')||'').split(',').filter(Boolean).forEach(k=>burst(k.trim())); }
+    const mk=(fn)=>{ const cc=document.createElement('canvas'); cc.width=im.naturalWidth; cc.height=im.naturalHeight; const g=cc.getContext('2d'); g.drawImage(im,0,0); fn(g,cc); return cc; };
+    if(q.get('peaTest')&&DBG.pinch){ // ピーナッツ判定テスト：指先にピーナッツ色の粒を描いた画像
+      const cc=mk((g,cc)=>{ const px=DBG.pinch.x*cc.width, py=DBG.pinch.y*cc.height; g.fillStyle='rgb(236,206,152)'; g.beginPath(); g.ellipse(px,py,cc.width*0.035,cc.width*0.022,0.4,0,7); g.fill(); g.fillStyle='rgb(214,178,120)'; g.beginPath(); g.ellipse(px+cc.width*0.01,py+cc.width*0.006,cc.width*0.012,cc.width*0.008,0.4,0,7); g.fill(); });
+      E.hold=null;E.holdN=0;E.armed=null; for(let i=0;i<6;i++){ step(cc,cc.width,cc.height,performance.now()+500+i*70); await new Promise(r=>setTimeout(r,80)); } console.log('peaTest kind=',DBG.kind); }
+    if(q.get('eatTest')&&DBG.pinch){ // 食べた判定テスト：指先の粒を肌色で塗りつぶす→消えた＝食べた
+      for(let i=0;i<4;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+900+i*70); await new Promise(r=>setTimeout(r,80)); }
+      const k0=S.kaki; const cc=mk((g,cc)=>{ const px=DBG.pinch.x*cc.width, py=DBG.pinch.y*cc.height; const rad=cc.width*0.06; const smp=g.getImageData(Math.round(px+rad*1.6),Math.round(py+rad*1.2),1,1).data; g.fillStyle=`rgb(${smp[0]},${smp[1]},${smp[2]})`; g.beginPath(); g.arc(px,py,rad,0,7); g.fill(); });
+      for(let i=0;i<6;i++){ step(cc,cc.width,cc.height,performance.now()+1500+i*70); await new Promise(r=>setTimeout(r,80)); } console.log('eatTest done kaki',k0,'->',S.kaki,'pea=',S.pea,'kindAfter=',DBG.kind); } }; }
 draw();
 </script></body></html>

@@ -72,6 +72,9 @@
   #res .score .v{font-size:calc(260*var(--u));font-weight:900;line-height:1;color:var(--o);text-shadow:0 8px 30px rgba(0,0,0,.5)}
   #res .score .eq{font-size:calc(34*var(--u));font-weight:600;opacity:.9;margin-top:calc(10*var(--u))}
   #shot{position:absolute;left:-9999px;top:-9999px}
+  #meter{position:absolute;left:calc(56*var(--u));right:calc(200*var(--u));bottom:calc(env(safe-area-inset-bottom,0px) + 175*var(--u));height:calc(14*var(--u));background:rgba(255,255,255,.22);border-radius:calc(7*var(--u));overflow:visible}
+  #mlv{height:100%;width:0%;background:#FF9900;border-radius:calc(7*var(--u));transition:width .05s}
+  #mtx{position:absolute;left:0;top:calc(-38*var(--u));font-size:calc(22*var(--u));text-shadow:0 1px 4px #000;white-space:nowrap}
   /* ---- リズムレーン（モードC） ---- */
   #lane{position:absolute;left:0;width:100%;top:calc(env(safe-area-inset-top,0px) + 560*var(--u));height:calc(150*var(--u));display:none}
   #lane.on{display:block}
@@ -118,6 +121,7 @@
   <div id="lane"><div class="bar"></div><div class="hit"></div></div><div id="judge"></div>
   <div id="det"></div>
   <div id="status"></div>
+  <div id="meter"><div id="mlv"></div><span id="mtx">🎤</span></div>
   <div id="start" class="ov on"><div class="big">START</div><div class="sub" id="subtxt">柿の種を食べると、柿ピーが降ってくる。<br>18秒で、画面をどれだけ埋められる？</div><div id="modes"><button data-m="a">A 見て判定</button><button data-m="b">B 音で判定</button><button data-m="c">C リズム</button></div><div id="modedesc"></div><button class="btn" id="go">カメラをONにして START</button><div class="tiny">手元に亀田の柿の種を用意。口元まで持ってきて、カリッ。<br>映像は端末内だけで処理され、送信されません。</div></div>
   <div id="res" class="ov">
     <div class="row"><div class="box"><div class="k">FILL</div><div class="v" id="r1">94%</div></div><div class="box"><div class="k">RATIO</div><div class="v" id="r2">7.2:2.8</div></div><div class="box"><div class="k">MATCH</div><div class="v" id="r3">98%</div></div></div>
@@ -169,7 +173,7 @@ function finish(){ if(S.done)return; S.done=true; S.run=false; const fill=Math.m
 function startGame(){ S.active=[];S.landed=0;S.landedK=0;S.landedP=0;S.bites=0;S.combo=0;S.lastBite=0;S.run=true;S.done=false;S.t0=performance.now(); hctx.clearRect(0,0,W,H); updBar(); $('timer').style.display=''; $('start').classList.remove('on'); $('res').classList.remove('on'); BGM.start(); $('status').textContent=q.get('tap')?'画面をタップ ＝ 食べた（カメラなしモード）':(MODE==='b'?'カリッと噛むと、降る。':MODE==='c'?'流れてきた柿／ピーに合わせて声に出す':'柿の種を口元へ。カリッ。'); if(MODE==='c'){ laneStart(); requestAnimationFrame(laneTick); } else laneStop(); }
 $('again').onclick=()=>{ $('res').classList.remove('on'); startGame(); };
 addEventListener('keydown',e=>{ if(!S.run)return; if(MODE==='c'){ if(e.key==='k'||e.key==='K') voiceEvent('k'); if(e.key==='p'||e.key==='P') voiceEvent('p'); return; } if(e.key===' '||e.key==='k'||e.key==='K'||e.key==='p'||e.key==='P') bite(); });
-$('c').addEventListener('pointerdown',()=>{ if(S.run&&(DEMO||q.get('tap'))) bite(); });
+let lastTap=0; $('c').addEventListener('pointerdown',(e)=>{ if(!S.run) return; if(MODE==='c'){ voiceEvent(e.clientX<innerWidth/2?'k':'p'); return; } if(DEMO||q.get('tap')) { bite(); return; } const n=performance.now(); if(n-lastTap<350) bite(); lastTap=n; });
 $('share').onclick=async()=>{ const sc=$('shot'); sc.width=W; sc.height=H; const g=sc.getContext('2d'); const src=DEMO?$('still'):$('cam'); g.save(); if(!DEMO){g.translate(W,0);g.scale(-1,1);} try{ const vw=src.videoWidth||src.naturalWidth, vh=src.videoHeight||src.naturalHeight; const s=Math.max(W/vw,H/vh); g.drawImage(src,(W-vw*s)/2,(H-vh*s)/2,vw*s,vh*s);}catch(e){} g.restore(); g.drawImage(hc,0,0); g.drawImage(cv,0,0); g.fillStyle='rgba(0,0,0,.28)'; g.fillRect(0,0,W,H); g.fillStyle='#FF9900'; g.textAlign='center'; g.font=`900 ${W*0.34}px Hiragino Sans, sans-serif`; g.fillText(String(S.lastScore),W/2,H*0.5); g.fillStyle='#fff'; g.font=`700 ${W*0.05}px Hiragino Sans, sans-serif`; g.fillText('#柿ピーシャワー',W/2,H*0.58);
   sc.toBlob(async b=>{ const f=new File([b],'kakipea.png',{type:'image/png'}); if(navigator.canShare&&navigator.canShare({files:[f]})){ try{await navigator.share({files:[f],text:'#柿ピーシャワー'});}catch(e){} } else { const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='kakipea.png'; a.click(); } }); };
 // ===================== 音（Web Audioで合成：外部音源なし）=====================
@@ -243,26 +247,34 @@ function voiceEvent(kind){ // kind: 'k' or 'p'
   best.done=true; if(best.kind===kind){ best.el.classList.add('hitok'); R.hit++; const d=Math.abs(best.t-now); judge(d<90?'PERFECT':'GOOD', d<90?'#FF9900':'#fff'); S.lastBite=0; if(kind==='k'){ S.combo++; S.bites++; spawn('K',Math.min(60,22+S.combo*6)); spawn('P',Math.round(Math.min(60,22+S.combo*6)*0.3)); } else { S.combo++; S.bites++; spawn('P',Math.min(50,18+S.combo*5)); spawn('K',Math.round(Math.min(50,18+S.combo*5)*0.5)); } SFX.crunch(); }
   else { best.el.style.opacity=.25; R.miss++; S.combo=0; judge('ちがう','#f66'); } }
 // ===================== マイク解析（全モード共通の1本） =====================
-// カリッ＝広帯域で急峻な立ち上がり（高域比率が高い） ／ 声＝有声（ピッチあり）。ピー＝伸ばす高い有声音、カキ＝短い
-async function mic(stream){ try{ const ac=audio(); const src=ac.createMediaStreamSource(stream); const an=ac.createAnalyser(); an.fftSize=2048; an.smoothingTimeConstant=0.2; src.connect(an); const td=new Float32Array(an.fftSize); const fd=new Uint8Array(an.frequencyBinCount); let avg=0.01; const binHz=ac.sampleRate/an.fftSize; let voiceOn=false, voiceStart=0, tonalCount=0, frames=0;
-  (function tick(){ an.getFloatTimeDomainData(td); an.getByteFrequencyData(fd); let s=0; for(let i=0;i<td.length;i++)s+=td[i]*td[i]; const rms=Math.sqrt(s/td.length);
+let MIC={ok:false,rms:0,peak:0.02,src:null};
+function micStatus(t){ $('mtx').textContent=t; }
+async function mic(stream){
+  let ac=audio(); let srcNode=null;
+  const connect=()=>{ srcNode=ac.createMediaStreamSource(stream); return srcNode; };
+  try{ connect(); }catch(e1){ console.warn('mic src fail, recreate AC',e1); try{ await ac.close(); }catch(e){} AC=null; master=null; ac=audio(); try{ connect(); }catch(e2){ micStatus('🎤 エラー: '+e2.message); return; } }
+  try{ if(ac.state!=='running'){ await ac.resume(); } }catch(e){}
+  if(ac.state!=='running'){ micStatus('🎤 画面をタップして音をON'); const once=()=>{ ac.resume(); micStatus('🎤 OK'); document.removeEventListener('pointerdown',once); }; document.addEventListener('pointerdown',once); }
+  const an=ac.createAnalyser(); an.fftSize=2048; an.smoothingTimeConstant=0.2; srcNode.connect(an); const td=new Float32Array(an.fftSize); const fd=new Uint8Array(an.frequencyBinCount); let avg=0.01; const binHz=ac.sampleRate/an.fftSize; let voiceOn=false, voiceStart=0, tonalCount=0, frames=0, lastCr=0; MIC.ok=true; micStatus('🎤 OK');
+  (function tick(){ an.getFloatTimeDomainData(td); an.getByteFrequencyData(fd); let s=0; for(let i=0;i<td.length;i++)s+=td[i]*td[i]; const rms=Math.sqrt(s/td.length); MIC.rms=rms; MIC.peak=Math.max(rms,MIC.peak*0.995,0.02);
+    $('mlv').style.width=Math.min(100,rms/MIC.peak*100)+'%';
     let lo=0,mid=0,hi=0; for(let i=0;i<fd.length;i++){ const f=i*binHz; if(f<400)lo+=fd[i]; else if(f<2500)mid+=fd[i]; else if(f<9000)hi+=fd[i]; } const tot=lo+mid+hi+1; const hiR=hi/tot, loR=lo/tot;
     const now=performance.now();
-    // --- カリッ（A/B）：急峻＋高域 ---
-    if(rms>avg*4&&rms>0.05&&hiR>0.28){ if(MODE==='b'){ bite(); } else if(MODE==='a'&&E.armed&&now-E.armedAt<3500){ E.armed=false; E.seen=0; bite(); } }
+    // --- カリッ（A/B）：急峻＋高域。しきい値は端末の音量に自動追従 ---
+    const thr=Math.max(0.012, avg*3.2);
+    if(rms>thr&&hiR>0.22&&now-lastCr>350){ lastCr=now; if(MODE==='b'){ bite(); } else if(MODE==='a'&&E.armed&&now-E.armedAt<3500){ E.armed=false; E.seen=0; bite(); } }
     // --- 声（C）：有声＝低中域中心で持続 ---
-    if(MODE==='c'){ const voiced=rms>0.03&&loR+mid/tot>0.7; if(voiced&&!voiceOn){ voiceOn=true; voiceStart=now; tonalCount=0; frames=0; }
-      if(voiceOn){ frames++; // ピッチ検出（自己相関・簡易）
-        let bestLag=0,best=0; const N=td.length; for(let lag=40;lag<400;lag+=2){ let c=0; for(let i=0;i<N-lag;i+=4) c+=td[i]*td[i+lag]; if(c>best){best=c;bestLag=lag;} } const f0=bestLag?ac.sampleRate/bestLag:0; if(f0>150&&best>0.6*s) tonalCount++;
-        if(!voiced||now-voiceStart>420){ voiceOn=false; const dur=now-voiceStart; const tonal=tonalCount/Math.max(1,frames); const kind=(dur>230&&tonal>0.45)?'p':'k'; voiceEvent(kind); } } }
-    avg=avg*0.95+rms*0.05; requestAnimationFrame(tick); })(); }catch(e){} }
+    if(MODE==='c'){ const voiced=rms>Math.max(0.008,avg*2.2)&&(loR+mid/tot)>0.6; if(voiced&&!voiceOn){ voiceOn=true; voiceStart=now; tonalCount=0; frames=0; }
+      if(voiceOn){ frames++; let bestLag=0,best=0; const N=td.length; for(let lag=40;lag<400;lag+=2){ let c=0; for(let i=0;i<N-lag;i+=4) c+=td[i]*td[i+lag]; if(c>best){best=c;bestLag=lag;} } const f0=bestLag?ac.sampleRate/bestLag:0; if(f0>150&&best>0.6*s) tonalCount++;
+        if(!voiced||now-voiceStart>420){ voiceOn=false; const dur=now-voiceStart; const tonal=tonalCount/Math.max(1,frames); const kind=(dur>230&&tonal>0.45)?'p':'k'; micStatus('🎤 '+(kind==='p'?'ピー':'カキ')+' を検知'); voiceEvent(kind); } } }
+    avg=avg*0.96+rms*0.04; requestAnimationFrame(tick); })(); }
 async function initCam(){ const v=$('cam'); const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720},height:{ideal:1280}},audio:true}); v.srcObject=st; await v.play(); mic(st); let last=-1;
   (function loop(){ if(MODE==='a'&&v.readyState>=2&&v.currentTime!==last){ last=v.currentTime; step(v,v.videoWidth,v.videoHeight,performance.now()); } setTimeout(loop,66); })(); }
 const withTimeout=(p,ms,label)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(label+' timeout')),ms))]);
-$('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中…'; audio(); await SPR_READY;
+$('go').onclick=async()=>{ $('go').disabled=true; $('go').textContent='起動中…'; audio(); micStatus('🎤 準備中'); await SPR_READY;
   let camOK=false; if(!DEMO){ try{ await withTimeout(initCam(),9000,'camera'); camOK=true; }catch(e){ console.warn('camera',e); } }
   if(camOK&&MODE==='a'){ try{ $('go').textContent='認識を準備中…'; await withTimeout(loadModels(),30000,'models'); }catch(e){ console.warn('models',e); camOK=false; } }
-  if(!camOK&&!DEMO){ q.set('tap','1'); $('status').textContent='カメラ／認識が使えないため、画面タップで「食べた」判定にしています'; }
+  if(!camOK&&!DEMO){ q.set('tap','1'); $('status').textContent='カメラ／認識が使えないため、画面タップで「食べた」判定にしています'; micStatus('🎤 マイク未接続'); }
   startGame(); };
 window.__dbg=()=>({active:S.active.length,landed:S.landed,bites:S.bites,frames:window.__f,spr:[SPR.K.length,SPR.P.length]});
 if(DEMO){ const im=$('still'); im.src=q.get('img')||''; im.style.display='block'; $('cam').style.display='none'; im.onload=async()=>{ await SPR_READY; if(!q.get('nomodel')){ await loadModels(); for(let i=0;i<4;i++){ step(im,im.naturalWidth,im.naturalHeight,performance.now()+i*70); await new Promise(r=>setTimeout(r,80)); } }

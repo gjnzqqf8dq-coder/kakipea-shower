@@ -80,7 +80,7 @@ const $=id=>document.getElementById(id);
 const cv=$('c'), ctx=cv.getContext('2d'), hc=$('heap'), hctx=hc.getContext('2d'); let W=0,H=0;
 function fit(){ const dpr=Math.min(2,devicePixelRatio||1); W=cv.width=hc.width=innerWidth*dpr; H=cv.height=hc.height=innerHeight*dpr; } fit(); addEventListener('resize',fit);
 // ---- sprites ----
-const SPR={K:[],P:[]}; const SPR_READY=(async()=>{ const ps=[]; for(const k of ['K','P']) for(let i=0;i<6;i++){ const im=new Image(); im.src=`sprites/${k.toLowerCase()}${i}.png`; SPR[k].push(im); ps.push(im.decode().catch(e=>console.warn('sprite',im.src,e))); } await Promise.all(ps); console.log('sprites ready'); })();
+const SPR={K:[],P:[]}; const SPR_READY=(async()=>{ const ps=[]; for(const k of ['K','P']) for(let i=0;i<6;i++){ const im=new Image(); im.src=`sprites/${k.toLowerCase()}${i}.png?v=3`; SPR[k].push(im); ps.push(im.decode().catch(e=>console.warn('sprite',im.src,e))); } await Promise.all(ps); console.log('sprites ready'); })();
 const S={run:false,t0:0,left:18,active:[],landed:0,kaki:0,pea:0,fillLine:0,done:false,lastScore:0};
 const DUR=18000, GRAV=0.05, FULL=340; // FULL個で画面が埋まる
 const rnd=(a,b)=>a+Math.random()*(b-a);
